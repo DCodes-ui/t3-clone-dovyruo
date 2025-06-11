@@ -6,7 +6,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 export async function POST(request) {
   try {
-    const { message, model = 'gemini-2.5-flash', priority = 'High' } = await request.json();
+    const { message, messages = [], model = 'gemini-2.5-flash', priority = 'High' } = await request.json();
 
     if (!message) {
       return NextResponse.json(
@@ -33,10 +33,37 @@ export async function POST(request) {
       model: actualModel
     });
 
-    // Generate content
-    const result = await generativeModel.generateContent(message);
-    const response = await result.response;
-    const text = response.text();
+    // Prepare the chat history for Gemini
+    // Convert our message format to Gemini's expected format
+    const chatHistory = messages.map(msg => ({
+      role: msg.role === 'user' ? 'user' : 'model',
+      parts: [{ text: msg.content }]
+    }));
+
+    // Add the current message
+    chatHistory.push({
+      role: 'user',
+      parts: [{ text: message }]
+    });
+
+    // If we have previous messages, use chat session for context
+    let text;
+    if (messages.length > 0) {
+      // Start a chat session with history
+      const chat = generativeModel.startChat({
+        history: chatHistory.slice(0, -1) // All messages except the current one
+      });
+      
+      // Send the current message
+      const result = await chat.sendMessage(message);
+      const response = await result.response;
+      text = response.text();
+    } else {
+      // First message - no history needed
+      const result = await generativeModel.generateContent(message);
+      const response = await result.response;
+      text = response.text();
+    }
 
     return NextResponse.json({
       success: true,

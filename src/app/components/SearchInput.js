@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 
-export default function SearchInput({ value, onChange, onSubmit, isLoading: externalLoading }) {
+export default function SearchInput({ value, onChange, onSubmit, onStop, isLoading: externalLoading }) {
   const [isLoading, setIsLoading] = useState(false);
   
   // Use external loading state if provided, otherwise use internal state
@@ -73,13 +73,7 @@ export default function SearchInput({ value, onChange, onSubmit, isLoading: exte
     }
   ];
 
-  // Einfache Token-Zählung (grobe Schätzung)
-  const tokenCount = useMemo(() => {
-    if (!value) return 0;
-    // Grobe Schätzung: 1 Token ≈ 0.75 Wörter
-    const words = value.trim().split(/\s+/).length;
-    return Math.ceil(words / 0.75);
-  }, [value]);
+
 
   // Check if current model is a thinking model
   const isThinkingModel = useMemo(() => {
@@ -93,6 +87,12 @@ export default function SearchInput({ value, onChange, onSubmit, isLoading: exte
     
     // Pass the current selections to the parent component
     await onSubmit(value, selectedModel, selectedPriority);
+  };
+
+  const handleStop = () => {
+    if (onStop) {
+      onStop();
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -137,18 +137,14 @@ export default function SearchInput({ value, onChange, onSubmit, isLoading: exte
           }}
           style={{
             backgroundSize: '200% 200%',
-            filter: isFocused ? 'blur(8px)' : 'blur(4px)',
-            opacity: isFocused ? 0.8 : 0.4,
+            filter: 'blur(8px)',
+            opacity: 0.8,
           }}
         />
         
         {/* Hauptcontainer */}
         <motion.div
           className="relative bg-input border border-border rounded-2xl shadow-2xl backdrop-blur-sm"
-          whileHover={{ 
-            scale: 1.02,
-            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)"
-          }}
           transition={{ duration: 0.2 }}
         >
           <form onSubmit={handleSubmit} className="relative">
@@ -161,25 +157,36 @@ export default function SearchInput({ value, onChange, onSubmit, isLoading: exte
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setIsFocused(false)}
                 placeholder="Type your message here..."
-                className="w-full min-h-[120px] max-h-[300px] px-6 py-6 pr-16 bg-transparent border-none text-foreground placeholder-muted-foreground focus:outline-none resize-none text-lg leading-relaxed"
+                className="w-full min-h-[80px] max-h-[300px] px-4 py-4 pr-14 bg-transparent border-none text-foreground placeholder-muted-foreground focus:outline-none resize-none text-base leading-relaxed"
                 disabled={actualLoading}
-                rows={3}
+                rows={2}
               />
               
-              {/* Submit Button */}
+              {/* Submit/Stop Button */}
               <motion.button
-                type="submit"
-                disabled={!value.trim() || actualLoading}
-                className="absolute top-4 right-4 p-3 bg-primary hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed rounded-xl transition-colors"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                type={actualLoading ? "button" : "submit"}
+                onClick={actualLoading ? handleStop : undefined}
+                disabled={!actualLoading && !value.trim()}
+                className={`absolute top-3 right-3 p-2 rounded-lg transition-colors ${
+                  actualLoading 
+                    ? 'bg-red-500 hover:bg-red-600 text-white' 
+                    : 'bg-primary hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed'
+                }`}
               >
                 {actualLoading ? (
-                  <motion.div 
-                    className="w-6 h-6 border-2 border-primary-foreground border-t-transparent rounded-full"
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  />
+                  <svg 
+                    className="w-6 h-6" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth={2} 
+                      d="M6 6h12v12H6z" 
+                    />
+                  </svg>
                 ) : (
                   <svg 
                     className="w-6 h-6 text-primary-foreground" 
@@ -199,14 +206,12 @@ export default function SearchInput({ value, onChange, onSubmit, isLoading: exte
             </div>
             
             {/* Untere Toolbar */}
-            <div className="flex items-center justify-between px-6 pb-4 pt-2">
+            <div className="flex items-center justify-between px-4 pb-3 pt-1">
               {/* Linke Icons */}
               <div className="flex items-center space-x-3">
                 <motion.button
                   type="button"
                   className="flex items-center space-x-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
@@ -221,8 +226,6 @@ export default function SearchInput({ value, onChange, onSubmit, isLoading: exte
                       type="button"
                       onClick={() => setPriorityDropdownOpen(!priorityDropdownOpen)}
                       className="flex items-center space-x-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -262,8 +265,6 @@ export default function SearchInput({ value, onChange, onSubmit, isLoading: exte
                     type="button"
                     onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
                     className="flex items-center space-x-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
                   >
                     {selectedModelInfo && (
                       <Image
@@ -328,17 +329,6 @@ export default function SearchInput({ value, onChange, onSubmit, isLoading: exte
                   )}
                 </div>
               </div>
-              
-              {/* Token Counter */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
-              >
-                <span className={`text-sm ${tokenCount > 800 ? 'text-red-500' : 'text-muted-foreground'}`}>
-                  {tokenCount}/1000
-                </span>
-              </motion.div>
             </div>
           </form>
         </motion.div>

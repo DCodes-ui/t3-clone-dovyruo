@@ -99,3 +99,433 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--muted-foreground);
 }
+
+/* Syntax Highlighting Styles */
+.hljs {
+  background: var(--muted) !important;
+  color: var(--foreground) !important;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: var(--muted-foreground);
+  font-style: italic;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-built_in,
+.hljs-name,
+.hljs-tag {
+  color: #8b5cf6;
+  font-weight: 600;
+}
+
+.hljs-string,
+.hljs-title,
+.hljs-section,
+.hljs-attribute,
+.hljs-literal,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-type,
+.hljs-addition {
+  color: #10b981;
+}
+
+.hljs-number,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-variable,
+.hljs-subst,
+.hljs-meta,
+.hljs-link {
+  color: #f59e0b;
+}
+
+.hljs-function,
+.hljs-class .hljs-title {
+  color: #3b82f6;
+  font-weight: 600;
+}
+
+.hljs-deletion {
+  color: #ef4444;
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: bold;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .hljs-keyword,
+  .hljs-selector-tag,
+  .hljs-built_in,
+  .hljs-name,
+  .hljs-tag {
+    color: #a855f7;
+  }
+  
+  .hljs-string,
+  .hljs-title,
+  .hljs-section,
+  .hljs-attribute,
+  .hljs-literal,
+  .hljs-template-tag,
+  .hljs-template-variable,
+  .hljs-type,
+  .hljs-addition {
+    color: #34d399;
+  }
+  
+  .hljs-number,
+  .hljs-symbol,
+  .hljs-bullet,
+  .hljs-variable,
+  .hljs-subst,
+  .hljs-meta,
+  .hljs-link {
+    color: #fbbf24;
+  }
+  
+  .hljs-function,
+  .hljs-class .hljs-title {
+    color: #60a5fa;
+  }
+}
+
+/* KaTeX Math Styling - Verbesserte Darstellung ohne Container-Boxen */
+.katex {
+  font-size: 2.5em !important;
+  line-height: 1.2 !important;
+  color: var(--foreground) !important;
+}
+
+/* Display Math - große zentrierte Formeln */
+.katex-display {
+  margin: 3em 0 !important;
+  text-align: center !important;
+  font-size: 3.2em !important;
+  line-height: 1.3 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.katex-display-block {
+  margin: 3em 0 !important;
+  text-align: center !important;
+  font-size: 3.2em !important;
+  line-height: 1.3 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Inline Math - größere Inline-Formeln */
+.katex-inline {
+  margin: 0 0.4em !important;
+  font-size: 2.2em !important;
+  vertical-align: middle !important;
+  line-height: 1.1 !important;
+}
+
+/* Entferne alle Container-Boxen und Hintergründe */
+.katex-display .katex,
+.katex-display-block .katex {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+/* Verbesserte Sichtbarkeit für alle mathematischen Symbole */
+.katex .mord,
+.katex .mbin,
+.katex .mrel,
+.katex .mopen,
+.katex .mclose,
+.katex .mpunct,
+.katex .mop,
+.katex .minner {
+  color: var(--foreground) !important;
+  font-weight: 600 !important;
+}
+
+/* Spezielle Verbesserungen für komplexe Strukturen */
+.katex .sqrt,
+.katex .frac-line,
+.katex .overline .overline-line,
+.katex .underline .underline-line {
+  border-color: var(--foreground) !important;
+  border-width: 0.1em !important;
+}
+
+/* Verbesserte Matrixdarstellung */
+.katex .arraycolsep {
+  width: 1.0em !important;
+}
+
+.katex .base {
+  display: inline-block;
+  min-height: 2.2em;
+}
+
+/* Größere Schriftart für Display Math */
+.katex-display .katex {
+  font-size: 3.5em !important;
+}
+
+/* Bessere Abstände für mathematische Symbole */
+.katex .mspace {
+  margin: 0.4em !important;
+}
+
+/* Verbesserungen für Brüche */
+.katex .frac .frac-line {
+  border-bottom-width: 0.12em !important;
+}
+
+/* Dark mode Anpassungen */
+@media (prefers-color-scheme: dark) {
+  .katex {
+    color: rgb(248, 250, 252) !important;
+  }
+  
+  .katex .mord,
+  .katex .mbin,
+  .katex .mrel,
+  .katex .mopen,
+  .katex .mclose,
+  .katex .mpunct,
+  .katex .mop,
+  .katex .minner {
+    color: rgb(248, 250, 252) !important;
+    font-weight: 600 !important;
+  }
+  
+  .katex .sqrt,
+  .katex .frac-line,
+  .katex .overline .overline-line,
+  .katex .underline .underline-line {
+    border-color: rgb(248, 250, 252) !important;
+    border-width: 0.1em !important;
+  }
+}
+
+/* Entferne alle Hintergrundfarben und Container-Effekte */
+.math-content .katex-display,
+.math-content .katex-display-block {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+}
+
+/* Bessere Integration in den Text-Flow */
+.math-content {
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+/* Responsive Anpassungen für mobile Geräte */
+@media (max-width: 768px) {
+  .katex {
+    font-size: 2.0em !important;
+  }
+  
+  .katex-display {
+    font-size: 2.5em !important;
+    margin: 2em 0 !important;
+  }
+  
+  .katex-display .katex {
+    font-size: 2.8em !important;
+  }
+  
+  .katex-inline {
+    font-size: 1.8em !important;
+  }
+}
+
+/* Markdown Text Formatting */
+strong, .strong {
+  font-weight: 700 !important;
+  color: var(--foreground) !important;
+  font-size: 1.1em;
+}
+
+em, .italic {
+  font-style: italic !important;
+  color: var(--foreground) !important;
+}
+
+/* Verbesserte Typografie für Chat-Nachrichten */
+.math-content strong {
+  font-weight: 700 !important;
+  color: var(--foreground) !important;
+  font-size: 1.15em !important;
+  letter-spacing: 0.02em;
+}
+
+.math-content em {
+  font-style: italic !important;
+  color: var(--muted-foreground) !important;
+}
+
+/* Dark mode Anpassungen für Text-Formatierung */
+@media (prefers-color-scheme: dark) {
+  strong, .strong {
+    color: rgb(248, 250, 252) !important;
+    text-shadow: 0 0 1px rgba(248, 250, 252, 0.3);
+  }
+  
+  .math-content strong {
+    color: rgb(248, 250, 252) !important;
+    text-shadow: 0 0 1px rgba(248, 250, 252, 0.3);
+  }
+  
+  em, .italic {
+    color: rgb(156, 163, 175) !important;
+  }
+}
+
+/* Typewriter Cursor Animation - Schneller für Ultra-Speed */
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+@keyframes fast-blink {
+  0%, 40% { opacity: 1; }
+  41%, 100% { opacity: 0; }
+}
+
+.typewriter-cursor {
+  animation: fast-blink 0.6s infinite;
+  font-weight: 400;
+  color: var(--primary);
+  font-size: 1.1em;
+}
+
+/* Smooth typing effect */
+.typewriter-text {
+  overflow: hidden;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* LaTeX Box Styling - Wie in Mathe-Skripten */
+.latex-box-display {
+  background: transparent !important;
+  border: none !important;
+  margin: 2rem 0 !important;
+  padding: 1rem 0 !important;
+  text-align: center !important;
+  width: 100% !important;
+  overflow-x: auto !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.latex-box-inline {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 0.2em !important;
+  margin: 0 0.1em !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.latex-placeholder {
+  display: inline-block;
+}
+
+.latex-placeholder.display {
+  display: block;
+  margin: 2rem 0;
+  text-align: center;
+}
+
+.latex-placeholder.inline {
+  margin: 0 0.3em;
+  vertical-align: middle;
+}
+
+.latex-error {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  border: 1px dashed var(--border);
+}
+
+/* Überschreibung für KaTeX in LaTeX-Boxen */
+.latex-box-display .katex-display,
+.latex-box-display .katex {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  font-size: 3.2em !important;
+}
+
+.latex-box-inline .katex {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  font-size: 2.2em !important;
+  vertical-align: middle !important;
+}
+
+/* Spezielle Formatierung für Matrizen und komplexe Strukturen */
+.latex-box-display .katex .base {
+  margin: 0 auto !important;
+}
+
+.latex-box-display .katex .arraycolsep {
+  width: 1.2em !important;
+}
+
+.latex-box-inline .katex .arraycolsep {
+  width: 0.8em !important;
+}
+
+/* Verbesserte Lesbarkeit */
+.latex-box-display .katex .mord,
+.latex-box-display .katex .mbin,
+.latex-box-display .katex .mrel,
+.latex-box-display .katex .mopen,
+.latex-box-display .katex .mclose,
+.latex-box-display .katex .mpunct,
+.latex-box-display .katex .mop,
+.latex-box-display .katex .minner {
+  color: var(--foreground) !important;
+  font-weight: 600 !important;
+}
+
+.latex-box-inline .katex .mord,
+.latex-box-inline .katex .mbin,
+.latex-box-inline .katex .mrel,
+.latex-box-inline .katex .mopen,
+.latex-box-inline .katex .mclose,
+.latex-box-inline .katex .mpunct,
+.latex-box-inline .katex .mop,
+.latex-box-inline .katex .minner {
+  color: var(--foreground) !important;
+  font-weight: 500 !important;
+}

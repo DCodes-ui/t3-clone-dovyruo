@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import ChatMessage from './ChatMessage';
+import ChatMessage, { TypingIndicator } from './ChatMessage';
 
-export default function ChatMessages({ messages }) {
+export default function ChatMessages({ messages, isLoading, selectedModel, onRetry, onEdit, onCopy }) {
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -31,8 +31,7 @@ export default function ChatMessages({ messages }) {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto">
-      <div className="space-y-4">
+    <div className="space-y-4">
         {messages.map((message, index) => (
           <ChatMessage
             key={index}
@@ -40,10 +39,20 @@ export default function ChatMessages({ messages }) {
             isUser={message.role === 'user'}
             model={message.model}
             priority={message.priority}
+            isStreaming={message.isStreaming && index === messages.length - 1}
+            onRetry={onRetry}
+            onEdit={onEdit}
+            onCopy={onCopy}
           />
         ))}
+        
+        {/* Loading Animation zwischen letztem User-Prompt und AI-Antwort */}
+        {isLoading && (
+          <TypingIndicator model={selectedModel} />
+        )}
+        
+        <div className="h-24" />
         <div ref={messagesEndRef} />
       </div>
-    </div>
   );
 } 

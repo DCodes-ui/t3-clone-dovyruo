@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-export default function Header() {
+export default function Header({ onClearChat, hasMessages }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // Example prompts for the dropdown (later dynamic)
@@ -39,11 +39,31 @@ export default function Header() {
     // Later: Confirmation and deletion from database
   };
 
+  const handleNewChat = () => {
+    if (onClearChat) {
+      onClearChat();
+    }
+    setDropdownOpen(false);
+  };
+
   return (
     <header className="w-full px-4 py-6">
       <div className="max-w-6xl mx-auto">
         {/* Navigation Area */}
-        <div className="flex justify-center">
+        <div className="flex justify-center items-center gap-4">
+          {/* Neuer Chat Button - nur anzeigen wenn Messages vorhanden */}
+          {hasMessages && (
+            <button
+              onClick={handleNewChat}
+              className="flex items-center space-x-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors text-sm font-medium"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              <span>Neuer Chat</span>
+            </button>
+          )}
+
           <div className="relative">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
