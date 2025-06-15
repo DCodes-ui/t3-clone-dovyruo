@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { chatService } from '../../../lib/supabase';
+import { chatService, supabase } from '../../../lib/supabase';
 import ConfirmDialog from './ConfirmDialog';
 
 export default function Sidebar({ isOpen, onToggle, currentChatId, onChatSelect, onNewChat }) {
   const [chats, setChats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, chatId: null, chatTitle: '' });
+  const [user, setUser] = useState(null);
 
   // Chats laden
   const loadChats = async () => {
@@ -26,7 +27,27 @@ export default function Sidebar({ isOpen, onToggle, currentChatId, onChatSelect,
 
   useEffect(() => {
     loadChats();
+  }, [user]);
+
+  // Auth state listener
+  useEffect(() => {
+    const init = async () => {
+      const { data } = await supabase.auth.getUser();
+      setUser(data?.user || null);
+    };
+    init();
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+    });
+    return () => {
+      listener.subscription.unsubscribe();
+    };
   }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+  };
 
   // Chat löschen
   const handleDeleteChat = (chatId, chatTitle, e) => {
@@ -220,7 +241,29 @@ export default function Sidebar({ isOpen, onToggle, currentChatId, onChatSelect,
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-border">
+        <div className="p-4 border-t border-border space-y-2">
+          {user && (
+            <button
+              onClick={handleSignOut}
+              className={`flex items-center gap-3 w-full p-3 bg-white dark:bg-card hover:bg-gray-100 dark:hover:bg-accent border border-border rounded-lg shadow transition-colors text-base font-medium ${!isOpen ? 'justify-center' : ''}`}
+              title="Logout"
+            >
+              <svg className="w-5 h-5 flex-shrink-0 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7" />
+              </svg>
+              {isOpen && (
+                <motion.span
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{ opacity: 1, width: 'auto' }}
+                  exit={{ opacity: 0, width: 0 }}
+                  className="whitespace-nowrap text-foreground"
+                >
+                  Logout
+                </motion.span>
+              )}
+            </button>
+          )}
+
           <button
             onClick={() => console.log('Settings clicked')} // Später: Settings-Modal öffnen
             className={`flex items-center gap-3 w-full p-3 hover:bg-accent rounded-lg transition-colors text-muted-foreground hover:text-foreground ${

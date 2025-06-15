@@ -117,222 +117,220 @@ export default function SearchInput({ value, onChange, onSubmit, onStop, isLoadi
   const selectedModelInfo = aiModels.find(model => model.id === selectedModel);
 
   return (
-    <div className="w-full">
+    <motion.div
+      className="relative"
+      initial={{ scale: 0.95, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ duration: 0.3 }}
+    >
+      {/* Animierter Glowing Border */}
       <motion.div
-        className="relative"
-        initial={{ scale: 0.95, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.3 }}
+        className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary via-purple-500 to-pink-500 opacity-75 blur-sm"
+        animate={{
+          backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+        }}
+        transition={{
+          duration: 3,
+          repeat: Infinity,
+          ease: "linear"
+        }}
+        style={{
+          backgroundSize: '200% 200%',
+          filter: 'blur(8px)',
+          opacity: 0.8,
+        }}
+      />
+      
+      {/* Hauptcontainer */}
+      <motion.div
+        className="relative bg-input border border-border rounded-2xl shadow-2xl backdrop-blur-sm"
+        transition={{ duration: 0.2 }}
       >
-        {/* Animierter Glowing Border */}
-        <motion.div
-          className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary via-purple-500 to-pink-500 opacity-75 blur-sm"
-          animate={{
-            backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
-          }}
-          transition={{
-            duration: 3,
-            repeat: Infinity,
-            ease: "linear"
-          }}
-          style={{
-            backgroundSize: '200% 200%',
-            filter: 'blur(8px)',
-            opacity: 0.8,
-          }}
-        />
-        
-        {/* Hauptcontainer */}
-        <motion.div
-          className="relative bg-input border border-border rounded-2xl shadow-2xl backdrop-blur-sm"
-          transition={{ duration: 0.2 }}
-        >
-          <form onSubmit={handleSubmit} className="relative">
-            {/* Haupteingabebereich */}
-            <div className="relative">
-              <textarea
-                value={value}
-                onChange={(e) => onChange(e.target.value)}
-                onKeyDown={handleKeyDown}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-                placeholder="Type your message here..."
-                className="w-full min-h-[80px] max-h-[300px] px-4 py-4 pr-14 bg-transparent border-none text-foreground placeholder-muted-foreground focus:outline-none resize-none text-base leading-relaxed"
-                disabled={actualLoading}
-                rows={2}
-              />
-              
-              {/* Submit/Stop Button */}
-              <motion.button
-                type={actualLoading ? "button" : "submit"}
-                onClick={actualLoading ? handleStop : undefined}
-                disabled={!actualLoading && !value.trim()}
-                className={`absolute top-3 right-3 p-2 rounded-lg transition-colors ${
-                  actualLoading 
-                    ? 'bg-red-500 hover:bg-red-600 text-white' 
-                    : 'bg-primary hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed'
-                }`}
-              >
-                {actualLoading ? (
-                  <svg 
-                    className="w-6 h-6" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
-                      strokeWidth={2} 
-                      d="M6 6h12v12H6z" 
-                    />
-                  </svg>
-                ) : (
-                  <svg 
-                    className="w-6 h-6 text-primary-foreground" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
-                      strokeWidth={2} 
-                      d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" 
-                    />
-                  </svg>
-                )}
-              </motion.button>
-            </div>
+        <form onSubmit={handleSubmit} className="relative">
+          {/* Haupteingabebereich */}
+          <div className="relative">
+            <textarea
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              placeholder="Type your message here..."
+              className="w-full min-h-[80px] max-h-[300px] px-4 py-4 pr-14 bg-transparent border-none text-foreground placeholder-muted-foreground focus:outline-none resize-none text-base leading-relaxed"
+              disabled={actualLoading}
+              rows={2}
+            />
             
-            {/* Untere Toolbar */}
-            <div className="flex items-center justify-between px-4 pb-3 pt-1">
-              {/* Linke Icons */}
-              <div className="flex items-center space-x-3">
-                <motion.button
-                  type="button"
-                  className="flex items-center space-x-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
+            {/* Submit/Stop Button */}
+            <motion.button
+              type={actualLoading ? "button" : "submit"}
+              onClick={actualLoading ? handleStop : undefined}
+              disabled={!actualLoading && !value.trim()}
+              className={`absolute top-3 right-3 p-2 rounded-lg transition-colors ${
+                actualLoading 
+                  ? 'bg-red-500 hover:bg-red-600 text-white' 
+                  : 'bg-primary hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed'
+              }`}
+            >
+              {actualLoading ? (
+                <svg 
+                  className="w-6 h-6" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                  </svg>
-                  <span>Attach</span>
-                </motion.button>
-                
-                {/* Priority Dropdown - nur bei Thinking Models anzeigen */}
-                {isThinkingModel && (
-                  <div className="relative">
-                    <motion.button
-                      type="button"
-                      onClick={() => setPriorityDropdownOpen(!priorityDropdownOpen)}
-                      className="flex items-center space-x-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                      <span>{selectedPriority}</span>
-                    </motion.button>
-
-                    {/* Priority Dropdown Menu */}
-                    {priorityDropdownOpen && (
-                      <motion.div
-                        className="absolute bottom-full left-0 mb-2 w-32 bg-card border border-border rounded-lg shadow-lg z-20"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        {priorityOptions.map((option) => (
-                          <button
-                            key={option.value}
-                            onClick={() => handlePrioritySelect(option)}
-                            className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-foreground hover:bg-accent transition-colors first:rounded-t-lg last:rounded-b-lg"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={option.icon} />
-                            </svg>
-                            <span>{option.label}</span>
-                          </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </div>
-                )}
-                
-                {/* AI Model Dropdown */}
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M6 6h12v12H6z" 
+                  />
+                </svg>
+              ) : (
+                <svg 
+                  className="w-6 h-6 text-primary-foreground" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" 
+                  />
+                </svg>
+              )}
+            </motion.button>
+          </div>
+          
+          {/* Untere Toolbar */}
+          <div className="flex items-center justify-between px-4 pb-3 pt-1">
+            {/* Linke Icons */}
+            <div className="flex items-center space-x-3">
+              <motion.button
+                type="button"
+                className="flex items-center space-x-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                </svg>
+                <span>Attach</span>
+              </motion.button>
+              
+              {/* Priority Dropdown - nur bei Thinking Models anzeigen */}
+              {isThinkingModel && (
                 <div className="relative">
                   <motion.button
                     type="button"
-                    onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
-                    className="flex items-center space-x-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors"
+                    onClick={() => setPriorityDropdownOpen(!priorityDropdownOpen)}
+                    className="flex items-center space-x-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
                   >
-                    {selectedModelInfo && (
-                      <Image
-                        src={selectedModelInfo.iconPath}
-                        alt={`${selectedModelInfo.provider} icon`}
-                        width={16}
-                        height={16}
-                        className="w-4 h-4 object-contain"
-                      />
-                    )}
-                    <span>{selectedModelInfo?.name}</span>
-                    <svg 
-                      className={`w-3 h-3 transition-transform ${modelDropdownOpen ? 'rotate-180' : ''}`}
-                      fill="none" 
-                      stroke="currentColor" 
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
+                    <span>{selectedPriority}</span>
                   </motion.button>
 
-                  {/* AI Model Dropdown Menu */}
-                  {modelDropdownOpen && (
+                  {/* Priority Dropdown Menu */}
+                  {priorityDropdownOpen && (
                     <motion.div
-                      className="absolute bottom-full left-0 mb-2 w-64 bg-card border border-border rounded-lg shadow-lg z-20 max-h-80 overflow-y-auto"
+                      className="absolute bottom-full left-0 mb-2 w-32 bg-card border border-border rounded-lg shadow-lg z-20"
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 10 }}
                       transition={{ duration: 0.2 }}
                     >
-                      {aiModels.map((model) => (
+                      {priorityOptions.map((option) => (
                         <button
-                          key={model.id}
-                          onClick={() => handleModelSelect(model)}
-                          className={`w-full flex items-center space-x-3 px-4 py-3 text-sm transition-colors first:rounded-t-lg last:rounded-b-lg ${
-                            selectedModel === model.id 
-                              ? 'bg-primary/10 text-primary' 
-                              : 'text-foreground hover:bg-accent'
-                          }`}
+                          key={option.value}
+                          onClick={() => handlePrioritySelect(option)}
+                          className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-foreground hover:bg-accent transition-colors first:rounded-t-lg last:rounded-b-lg"
                         >
-                          <div className="flex-shrink-0">
-                            <Image
-                              src={model.iconPath}
-                              alt={`${model.provider} icon`}
-                              width={16}
-                              height={16}
-                              className="w-4 h-4 object-contain"
-                            />
-                          </div>
-                          <div className="flex-1 text-left">
-                            <div className="font-medium">{model.name}</div>
-                            <div className="text-xs text-muted-foreground">{model.provider}</div>
-                          </div>
-                          {model.isThinking && (
-                            <div className="text-xs bg-primary/20 text-primary px-2 py-1 rounded">
-                              Thinking
-                            </div>
-                          )}
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={option.icon} />
+                          </svg>
+                          <span>{option.label}</span>
                         </button>
                       ))}
                     </motion.div>
                   )}
                 </div>
+              )}
+              
+              {/* AI Model Dropdown */}
+              <div className="relative">
+                <motion.button
+                  type="button"
+                  onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
+                  className="flex items-center space-x-2 px-3 py-2 text-sm bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors"
+                >
+                  {selectedModelInfo && (
+                    <Image
+                      src={selectedModelInfo.iconPath}
+                      alt={`${selectedModelInfo.provider} icon`}
+                      width={16}
+                      height={16}
+                      className="w-4 h-4 object-contain"
+                    />
+                  )}
+                  <span>{selectedModelInfo?.name}</span>
+                  <svg 
+                    className={`w-3 h-3 transition-transform ${modelDropdownOpen ? 'rotate-180' : ''}`}
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </motion.button>
+
+                {/* AI Model Dropdown Menu */}
+                {modelDropdownOpen && (
+                  <motion.div
+                    className="absolute bottom-full left-0 mb-2 w-64 bg-card border border-border rounded-lg shadow-lg z-20 max-h-80 overflow-y-auto"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {aiModels.map((model) => (
+                      <button
+                        key={model.id}
+                        onClick={() => handleModelSelect(model)}
+                        className={`w-full flex items-center space-x-3 px-4 py-3 text-sm transition-colors first:rounded-t-lg last:rounded-b-lg ${
+                          selectedModel === model.id 
+                            ? 'bg-primary/10 text-primary' 
+                            : 'text-foreground hover:bg-accent'
+                        }`}
+                      >
+                        <div className="flex-shrink-0">
+                          <Image
+                            src={model.iconPath}
+                            alt={`${model.provider} icon`}
+                            width={16}
+                            height={16}
+                            className="w-4 h-4 object-contain"
+                          />
+                        </div>
+                        <div className="flex-1 text-left">
+                          <div className="font-medium">{model.name}</div>
+                          <div className="text-xs text-muted-foreground">{model.provider}</div>
+                        </div>
+                        {model.isThinking && (
+                          <div className="text-xs bg-primary/20 text-primary px-2 py-1 rounded">
+                            Thinking
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
               </div>
             </div>
-          </form>
-        </motion.div>
+          </div>
+        </form>
       </motion.div>
-    </div>
+    </motion.div>
   );
 } 

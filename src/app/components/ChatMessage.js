@@ -2,130 +2,140 @@
 
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
-import dynamic from 'next/dynamic';
+import { useState, useEffect, useRef } from 'react';
 
-// Dynamische Importe für KaTeX um SSR-Probleme zu vermeiden
-const InlineMath = dynamic(() => import('react-katex').then(mod => mod.InlineMath), {
-  ssr: false,
-  loading: () => <span className="animate-pulse bg-muted h-4 w-16 inline-block rounded"></span>
-});
 
-const BlockMath = dynamic(() => import('react-katex').then(mod => mod.BlockMath), {
-  ssr: false,
-  loading: () => <div className="animate-pulse bg-muted h-8 w-32 mx-auto rounded"></div>
-});
+const MathRenderer = ({ content = '', isDisplay = false, className = '' }) => {
+  const containerRef = useRef(null);
+  const [isClient, setIsClient] = useState(false);
 
-// KaTeX CSS dynamisch laden
-if (typeof window !== 'undefined') {
-  import('katex/dist/katex.min.css');
-}
 
-// Intelligente LaTeX-Box-Rendering Komponente
-const LaTeXRenderer = ({ formula, isDisplay = false }) => {
+  const loadMathJax = () => {
+    return new Promise((resolve) => {
+      if (window.MathJax) {
+        resolve(window.MathJax);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js';
+      script.async = true;
+      script.onload = () => resolve(window.MathJax);
+      document.head.appendChild(script);
+    });
+  };
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isClient || !containerRef.current || !content.trim()) return;
+
+
+    const renderMath = async () => {
+      const mj = await loadMathJax();
+      if (!mj) return;
+
+
+      containerRef.current.innerHTML = isDisplay ? `$$${content}$$` : `\\(${content}\\)`;
+
+
+      try {
+        await mj.typesetPromise([containerRef.current]);
+      } catch (err) {
+        console.error('MathJax typeset error', err);
+      }
+    };
+
+    renderMath();
+  }, [isClient, content, isDisplay]);
+
   if (!isClient) {
     return (
-      <div className={`latex-placeholder ${isDisplay ? 'display' : 'inline'}`}>
-        <div className="animate-pulse bg-muted-foreground/20 h-6 w-24 rounded"></div>
-      </div>
+      <span className={`inline-block bg-muted animate-pulse rounded ${isDisplay ? 'h-6 w-24 my-2' : 'h-4 w-12'}`}></span>
     );
   }
 
-  try {
-    if (isDisplay) {
-      return (
-        <div className="latex-box-display my-6">
-          <BlockMath math={formula} />
-        </div>
-      );
-    } else {
-      return (
-        <span className="latex-box-inline mx-1">
-          <InlineMath math={formula} />
-        </span>
-      );
-    }
-  } catch (error) {
-    return (
-      <span className="latex-error text-red-500 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded text-sm">
-        LaTeX Error: {isDisplay ? `$$${formula}$$` : `$${formula}$`}
-      </span>
-    );
-  }
+  return (
+    <span
+      ref={containerRef}
+      className={`${className} ${isDisplay ? 'my-4 block text-center' : 'inline-block align-middle mx-1'}`}
+    />
+  );
 };
 
-// Ultra-schneller Typewriter mit sofortigem LaTeX-Rendering
-const FastTypewriterWithLatex = ({ text, onComplete }) => {
+
+const FastTypewriterWithMath = ({ text, onComplete }) => {
   const [displayedText, setDisplayedText] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [renderedParts, setRenderedParts] = useState([]);
+  const [mathElements, setMathElements] = useState([]);
 
-  // LaTeX-Formeln vorab erkennen und vorrendern
-  const preprocessLatex = (fullText) => {
-    const parts = [];
+  const CHUNK_SIZE = 12;      
+  const FRAME_SPEED = 5;     
+
+
+  const preprocessMath = (fullText) => {
+    const elements = [];
     let lastIndex = 0;
     
-    // Display Math: $$...$$ und \[...\]
-    const displayMathRegex = /(\$\$([\s\S]*?)\$\$|\\\[([\s\S]*?)\\\])/g;
-    const inlineMathRegex = /(\$([^$\n\r]+?)\$|\\\(([^\\]*?)\\\))/g;
+
+    const patterns = [
+      { regex: /\$\$([\s\S]*?)\$\$/g, isDisplay: true },      
+      { regex: /\\\[([\s\S]*?)\\\]/g, isDisplay: true },      
+      { regex: /\$([^$\n\r]+?)\$/g, isDisplay: false },      
+      { regex: /\\\(([^\\]*?)\\\)/g, isDisplay: false },      
+      { regex: /```\s*([\s\S]*?)\s*```/g, isDisplay: true, codeBlock: true },
+    ];
     
     const allMatches = [];
     
-    // Display Math sammeln
-    let match;
-    while ((match = displayMathRegex.exec(fullText)) !== null) {
-      const content = (match[2] || match[3] || '').trim();
-      allMatches.push({
-        start: match.index,
-        end: match.index + match[0].length,
-        content: content,
-        isDisplay: true,
-        fullMatch: match[0]
-      });
-    }
-    
-    // Inline Math sammeln
-    displayMathRegex.lastIndex = 0;
-    while ((match = inlineMathRegex.exec(fullText)) !== null) {
-      const isInsideDisplay = allMatches.some(dm => 
-        match.index >= dm.start && match.index < dm.end
-      );
-      
-      if (!isInsideDisplay) {
-        const content = (match[2] || match[3] || '').trim();
-        allMatches.push({
-          start: match.index,
-          end: match.index + match[0].length,
-          content: content,
-          isDisplay: false,
-          fullMatch: match[0]
-        });
+    patterns.forEach(pattern => {
+      let match;
+      while ((match = pattern.regex.exec(fullText)) !== null) {
+        const content = match[1]?.trim() || '';
+        if (content) {
+          allMatches.push({
+            start: match.index,
+            end: match.index + match[0].length,
+            content: content,
+            isDisplay: pattern.isDisplay,
+            fullMatch: match[0]
+          });
+        }
       }
-    }
+      pattern.regex.lastIndex = 0; 
+    });
+    
     
     allMatches.sort((a, b) => a.start - b.start);
-    return allMatches;
+    
+    
+    const filteredMatches = [];
+    allMatches.forEach(match => {
+      const hasOverlap = filteredMatches.some(existing => 
+        (match.start >= existing.start && match.start < existing.end) ||
+        (match.end > existing.start && match.end <= existing.end)
+      );
+      if (!hasOverlap) {
+        filteredMatches.push(match);
+      }
+    });
+    
+    return filteredMatches;
   };
 
-  const latexMatches = preprocessLatex(text);
+  const mathMatches = preprocessMath(text);
 
   useEffect(() => {
     if (currentIndex < text.length) {
-      let speed = 4;
-      const currentChar = text[currentIndex];
-      
-      if (currentChar === ' ') speed = 2;
-      else if (['.', ',', '!', '?', ':', ';'].includes(currentChar)) speed = 8;
-      else if (currentChar === '\n') speed = 3;
-
       const timer = setTimeout(() => {
-        setDisplayedText(prev => prev + text[currentIndex]);
-        setCurrentIndex(prev => prev + 1);
-      }, speed);
-
+        const nextIndex = Math.min(currentIndex + CHUNK_SIZE, text.length);
+        setDisplayedText(prev => prev + text.slice(currentIndex, nextIndex));
+        setCurrentIndex(nextIndex);
+      }, FRAME_SPEED);
       return () => clearTimeout(timer);
     } else if (onComplete) {
-      setTimeout(onComplete, 100);
+      onComplete();
     }
   }, [currentIndex, text, onComplete]);
 
@@ -134,23 +144,40 @@ const FastTypewriterWithLatex = ({ text, onComplete }) => {
     setCurrentIndex(0);
   }, [text]);
 
-  // Text mit sofortigem LaTeX-Rendering verarbeiten
-  const renderTextWithLatex = () => {
+  
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden && currentIndex < text.length) {
+        setDisplayedText(text);
+        setCurrentIndex(text.length);
+        if (onComplete) onComplete();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [currentIndex, text, onComplete]);
+
+  
+  const renderTextWithMath = () => {
     if (!displayedText) return null;
     
     const parts = [];
     let lastIndex = 0;
     let partKey = 0;
 
-    // Nur die LaTeX-Matches verarbeiten, die bereits im displayedText enthalten sind
-    const visibleMatches = latexMatches.filter(match => match.end <= displayedText.length);
+    
+    const visibleMatches = mathMatches.filter(match => match.end <= displayedText.length);
 
-    visibleMatches.forEach((latexMatch) => {
-      // Text vor der Formel
-      if (latexMatch.start > lastIndex) {
-        const beforeText = displayedText.slice(lastIndex, latexMatch.start);
+    visibleMatches.forEach((mathMatch) => {
+      
+      if (mathMatch.start > lastIndex) {
+        const beforeText = displayedText.slice(lastIndex, mathMatch.start);
         if (beforeText) {
-          const formattedText = beforeText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+          const formattedText = beforeText
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*([^*]+?)\*/g, '<em>$1</em>')
+            .replace(/(^|\n)\s*\*\s+/g, '$1&#8226; ')
+            .replace(/\n/g, '<br />');
           parts.push(
             <span 
               key={partKey++}
@@ -161,23 +188,28 @@ const FastTypewriterWithLatex = ({ text, onComplete }) => {
         }
       }
 
-      // LaTeX-Formel als gerenderte Box
+      
       parts.push(
-        <LaTeXRenderer 
+        <MathRenderer 
           key={partKey++}
-          formula={latexMatch.content}
-          isDisplay={latexMatch.isDisplay}
+          content={mathMatch.content}
+          isDisplay={mathMatch.isDisplay}
+          className="math-formula"
         />
       );
 
-      lastIndex = latexMatch.end;
+      lastIndex = mathMatch.end;
     });
 
-    // Restlicher Text
+    
     if (lastIndex < displayedText.length) {
       const remainingText = displayedText.slice(lastIndex);
       if (remainingText) {
-        const formattedText = remainingText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        const formattedText = remainingText
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*([^*]+?)\*/g, '<em>$1</em>')
+          .replace(/(^|\n)\s*\*\s+/g, '$1&#8226; ')
+          .replace(/\n/g, '<br />');
         parts.push(
           <span 
             key={partKey++}
@@ -192,16 +224,24 @@ const FastTypewriterWithLatex = ({ text, onComplete }) => {
       <span 
         className="whitespace-pre-wrap"
         dangerouslySetInnerHTML={{ 
-          __html: displayedText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
+          __html: displayedText
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*([^*]+?)\*/g, '<em>$1</em>')
+            .replace(/(^|\n)\s*\*\s+/g, '$1&#8226; ')
+            .replace(/\n/g, '<br />')
         }}
       />
     );
   };
 
-  return renderTextWithLatex();
+  return (
+    <div className="typewriter-container">
+      {renderTextWithMath()}
+    </div>
+  );
 };
 
-// Loading Animation Komponente
+
 const TypingIndicator = ({ model }) => {
   const getProviderIcon = (modelId) => {
     if (modelId?.includes('gemini')) return '/gemini_icon.png';
@@ -290,6 +330,7 @@ function ChatMessage({ message, isUser = false, model, priority, isStreaming = f
   const [isClient, setIsClient] = useState(false);
   const [streamingComplete, setStreamingComplete] = useState(!isStreaming);
   const [isHovered, setIsHovered] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -312,88 +353,97 @@ function ChatMessage({ message, isUser = false, model, priority, isStreaming = f
     }
   };
 
-  // Funktion zur Verarbeitung von Text mit Markdown-Formatierung und LaTeX-Formeln
   const processTextWithMarkdownAndMath = (text) => {
     if (!text || typeof text !== 'string') return text;
-    
-    // Schritt 1: Text-Formatierung (Markdown-ähnlich)
-    const formatText = (textSegment) => {
-      if (!textSegment) return textSegment;
-      
-      // **Bold Text** formatieren
-      textSegment = textSegment.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-      
-      // *Italic Text* formatieren
-      textSegment = textSegment.replace(/\*([^*]+?)\*/g, '<em>$1</em>');
-      
-      // Zeilienumbrüche korrekt handhaben
-      textSegment = textSegment.replace(/\n/g, '<br />');
-      
-      return textSegment;
-    };
-    
-
     
     const parts = [];
     let currentIndex = 0;
     let partKey = 0;
     
-    // Verbesserte Regex für verschiedene Math-Formate
-    // Display Math: $$...$$ und \[...\]
-    // Inline Math: $...$ und \(...\)
-    const displayMathRegex = /(\$\$([\s\S]*?)\$\$|\\\[([\s\S]*?)\\\])/g;
-    const inlineMathRegex = /(\$([^$\n\r]+?)\$|\\\(([^\\]*?)\\\))/g;
-    
-    // Erstelle Array mit allen Math-Matches
-    const mathMatches = [];
-    
-    // Display Math finden
-    let match;
-    while ((match = displayMathRegex.exec(text)) !== null) {
-      // match[2] für $$...$$ oder match[3] für \[...\]
-      const content = (match[2] || match[3] || '').trim();
-      mathMatches.push({
-        start: match.index,
-        end: match.index + match[0].length,
-        content: content,
-        isDisplay: true,
-        fullMatch: match[0]
-      });
-    }
-    
-    // Inline Math finden (aber nur außerhalb von Display Math)
-    displayMathRegex.lastIndex = 0; // Reset regex
-    while ((match = inlineMathRegex.exec(text)) !== null) {
-      // Prüfen ob dieser Match innerhalb eines Display Math liegt
-      const isInsideDisplay = mathMatches.some(dm => 
-        match.index >= dm.start && match.index < dm.end
-      );
+    const mathPatterns = [
+      { regex: /\$\$([\s\S]*?)\$\$/g, isDisplay: true },      
+      { regex: /\\\[([\s\S]*?)\\\]/g, isDisplay: true },      
+      { regex: /\$([^$\n\r]+?)\$/g, isDisplay: false },      
+      { regex: /\\\(([^\\]*?)\\\)/g, isDisplay: false },      
       
-      if (!isInsideDisplay) {
-        // match[2] für $...$ oder match[3] für \(...\)
-        const content = (match[2] || match[3] || '').trim();
-        mathMatches.push({
-          start: match.index,
-          end: match.index + match[0].length,
-          content: content,
-          isDisplay: false,
-          fullMatch: match[0]
-        });
+      // Code-Block-ähnliche Math (```...```)
+      { regex: /```\s*([\s\S]*?)\s*```/g, isDisplay: true, codeBlockMath: true },   // ```...```
+      
+      // Einzelne griechische Buchstaben und Symbole erkennen
+      { regex: /\b([A-Z]_?[a-z]*)\s*=\s*([^,\n\r]+)/g, isDisplay: false, variable: true }, // Variablendefinitionen
+    ];
+    
+    const allMatches = [];
+    
+    // Alle Pattern durchsuchen
+    mathPatterns.forEach(pattern => {
+      let match;
+      while ((match = pattern.regex.exec(text)) !== null) {
+        let content = (match[1] || '').trim();
+        
+        // Spezielle Behandlung für Code-Block-Math
+        if (pattern.codeBlockMath && content) {
+          // Prüfen ob es mathematische Symbole enthält
+          const hasMathSymbols = /[αβγδεζηθικλμνξοπρστυφχψωΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ=+\-*\/\^_{}\(\)\\]/.test(content);
+          if (hasMathSymbols) {
+            // Als Display-Math behandeln
+            allMatches.push({
+              start: match.index,
+              end: match.index + match[0].length,
+              content: content,
+              isDisplay: true,
+              fullMatch: match[0],
+              isCodeBlockMath: true
+            });
+          }
+        } else if (pattern.variable && content) {
+          // Variablendefinitionen als Inline-Math
+          allMatches.push({
+            start: match.index,
+            end: match.index + match[0].length,
+            content: match[0], // Ganze Zeile als Math
+            isDisplay: false,
+            fullMatch: match[0],
+            isVariable: true
+          });
+        } else if (content) {
+          // Standard Math-Pattern
+          allMatches.push({
+            start: match.index,
+            end: match.index + match[0].length,
+            content: content,
+            isDisplay: pattern.isDisplay,
+            fullMatch: match[0]
+          });
+        }
       }
-    }
+      pattern.regex.lastIndex = 0;
+    });
     
-    // Sortiere Matches nach Position
-    mathMatches.sort((a, b) => a.start - b.start);
+    // Nach Position sortieren und Überlappungen entfernen
+    allMatches.sort((a, b) => a.start - b.start);
+    const filteredMatches = [];
+    allMatches.forEach(match => {
+      const hasOverlap = filteredMatches.some(existing => 
+        (match.start >= existing.start && match.start < existing.end) ||
+        (match.end > existing.start && match.end <= existing.end)
+      );
+      if (!hasOverlap) {
+        filteredMatches.push(match);
+      }
+    });
     
-    
-    
-    // Verarbeite Text mit Formeln
-    mathMatches.forEach((mathMatch, index) => {
-      // Text vor der Formel hinzufügen (mit Markdown-Formatierung)
+    // Text mit Mathematik verarbeiten
+    filteredMatches.forEach((mathMatch) => {
+      // Text vor der Formel
       if (mathMatch.start > currentIndex) {
         const beforeText = text.slice(currentIndex, mathMatch.start);
         if (beforeText.trim()) {
-          const formattedText = formatText(beforeText);
+          const formattedText = beforeText
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*([^*]+?)\*/g, '<em>$1</em>')
+            .replace(/(^|\n)\s*\*\s+/g, '$1&#8226; ')
+            .replace(/\n/g, '<br />');
           parts.push(
             <span 
               key={partKey++} 
@@ -404,54 +454,28 @@ function ChatMessage({ message, isUser = false, model, priority, isStreaming = f
         }
       }
       
-      try {
-        if (isClient) {
-          if (mathMatch.isDisplay) {
-            parts.push(
-              <div key={partKey++} className="my-8 w-full">
-                <BlockMath math={mathMatch.content} />
-              </div>
-            );
-          } else {
-            parts.push(
-              <span key={partKey++}>
-                <InlineMath math={mathMatch.content} />
-              </span>
-            );
-          }
-        } else {
-          // Fallback während SSR
-          if (mathMatch.isDisplay) {
-            parts.push(
-              <div key={partKey++} className="my-8 w-full text-center bg-muted p-4 rounded">
-                <div className="animate-pulse bg-muted-foreground/20 h-8 w-48 mx-auto rounded"></div>
-              </div>
-            );
-          } else {
-            parts.push(
-              <span key={partKey++} className="inline-block bg-muted px-2 py-1 rounded">
-                <div className="animate-pulse bg-muted-foreground/20 h-4 w-16 rounded"></div>
-              </span>
-            );
-          }
-        }
-      } catch (error) {
-        console.error('KaTeX render error:', error, 'for:', mathMatch.content);
-        parts.push(
-          <span key={partKey++} className="text-red-500 bg-red-50 dark:bg-red-900/20 px-1 rounded">
-            Error: {mathMatch.fullMatch}
-          </span>
-        );
-      }
+      // Mathematische Formel rendern
+      parts.push(
+        <MathRenderer 
+          key={partKey++}
+          content={mathMatch.content}
+          isDisplay={mathMatch.isDisplay}
+          className="processed-math"
+        />
+      );
       
       currentIndex = mathMatch.end;
     });
     
-    // Restlichen Text hinzufügen (mit Markdown-Formatierung)
+    // Restlichen Text hinzufügen
     if (currentIndex < text.length) {
       const remainingText = text.slice(currentIndex);
       if (remainingText.trim()) {
-        const formattedText = formatText(remainingText);
+        const formattedText = remainingText
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*([^*]+?)\*/g, '<em>$1</em>')
+          .replace(/(^|\n)\s*\*\s+/g, '$1&#8226; ')
+          .replace(/\n/g, '<br />');
         parts.push(
           <span 
             key={partKey++} 
@@ -462,9 +486,13 @@ function ChatMessage({ message, isUser = false, model, priority, isStreaming = f
       }
     }
     
-    // Fallback: wenn keine Math-Formeln gefunden wurden, formatiere den gesamten Text
+    // Fallback: Einfache Formatierung wenn keine Math-Formeln gefunden
     if (parts.length === 0) {
-      const formattedText = formatText(text);
+      const formattedText = text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*([^*]+?)\*/g, '<em>$1</em>')
+        .replace(/(^|\n)\s*\*\s+/g, '$1&#8226; ')
+        .replace(/\n/g, '<br />');
       return (
         <span 
           className="whitespace-pre-wrap"
@@ -488,8 +516,8 @@ function ChatMessage({ message, isUser = false, model, priority, isStreaming = f
         onMouseLeave={() => setIsHovered(false)}
       >
         <div className="max-w-2xl text-right">
-          <div className="rounded-2xl px-6 py-4 bg-primary text-primary-foreground ml-auto">
-            <div className="text-sm leading-relaxed whitespace-pre-wrap text-primary-foreground">
+          <div className="rounded-2xl px-6 py-4 bg-primary/20 text-foreground ml-auto">
+            <div className="text-base leading-relaxed whitespace-pre-wrap text-foreground font-proxima">
               {message}
             </div>
           </div>
@@ -520,13 +548,41 @@ function ChatMessage({ message, isUser = false, model, priority, isStreaming = f
               </svg>
             </button>
             <button
-              onClick={() => onCopy && onCopy(message)}
+              onClick={() => {
+                if (onCopy) onCopy(message);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1500);
+              }}
               className="p-2 bg-card hover:bg-accent border border-border rounded-lg shadow-lg transition-colors"
               title="Copy"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
+              {copied ? (
+                <motion.svg
+                  key="check"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.2 }}
+                  className="w-4 h-4 text-green-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </motion.svg>
+              ) : (
+                <motion.svg
+                  key="copy"
+                  initial={{ scale: 1, opacity: 1 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.8, opacity: 0 }}
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </motion.svg>
+              )}
             </button>
           </motion.div>
         </div>
@@ -572,12 +628,12 @@ function ChatMessage({ message, isUser = false, model, priority, isStreaming = f
       )}
       
       {/* Text-Inhalt mit Markdown und LaTeX-Formeln */}
-      <div className="prose prose-lg max-w-none text-foreground">
+      <div className="prose prose-lg max-w-none text-foreground font-proxima">
         <div className="math-content space-y-4 leading-relaxed text-lg">
           {isStreaming && !streamingComplete ? (
             // Während Streaming: Zeige ultra-schnellen typewriter-Effekt mit Formatierung
             <div className="typewriter-text">
-              <FastTypewriterWithLatex 
+              <FastTypewriterWithMath 
                 text={message} 
                 onComplete={() => setStreamingComplete(true)}
               />

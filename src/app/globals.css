@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
+  --background: #121212;
   --foreground: #171717;
   --card: #ffffff;
   --card-foreground: #171717;
@@ -37,7 +37,7 @@
 }
 
 .dark {
-  --background: #0a0a0a;
+  --background: #121212;
   --foreground: #ededed;
   --card: #141414;
   --card-foreground: #ededed;
@@ -55,7 +55,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #121212;
     --foreground: #ededed;
     --card: #141414;
     --card-foreground: #ededed;
@@ -527,5 +527,152 @@ em, .italic {
 .latex-box-inline .katex .mop,
 .latex-box-inline .katex .minner {
   color: var(--foreground) !important;
-  font-weight: 500 !important;
+      font-weight: 500 !important;
+  }
+
+/* SVG-basierte mathematische Formeln - professionelle Darstellung */
+.math-svg-display {
+  /* Display-Math Container für SVG */
+  text-align: center;
+  margin: 1.5rem 0;
+  line-height: 1;
+}
+
+.math-svg-inline {
+  /* Inline-Math Container für SVG */
+  display: inline-block;
+  vertical-align: middle;
+  margin: 0 0.2em;
+}
+
+.math-svg-content {
+  /* SVG-Inhalt optimieren */
+  max-width: 100%;
+  height: auto;
+  vertical-align: middle;
+}
+
+/* SVG-spezifische Anpassungen */
+.math-svg-content svg {
+  /* SVG-Elemente sauber integrieren */
+  display: inline-block;
+  vertical-align: middle;
+  max-width: 100%;
+  height: auto;
+  
+  /* Dark Mode Unterstützung */
+  filter: brightness(1);
+}
+
+/* Dark Mode für SVG-Mathematik */
+@media (prefers-color-scheme: dark) {
+  .math-svg-content svg {
+    /* SVG in Dark Mode invertieren falls nötig */
+    filter: invert(1) hue-rotate(180deg);
+  }
+  
+  /* Aber nicht bei bereits hellen SVGs */
+  .math-svg-content svg[fill*="white"],
+  .math-svg-content svg[fill*="#fff"] {
+    filter: none;
+  }
+}
+
+/* Loading-States für Mathematik */
+.math-loading {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.math-placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Typewriter-Cursor Animation */
+.typewriter-cursor {
+  animation: blink 1s infinite;
+  color: hsl(var(--primary));
+  font-weight: normal;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* Math-Placeholder während Laden */
+.math-placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Verbesserte Darstellung für Math-Fehler */
+.math-error {
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+}
+
+/* Dark Mode Anpassungen für KaTeX */
+@media (prefers-color-scheme: dark) {
+  .katex {
+    color: hsl(var(--foreground)) !important;
+  }
+  
+  .katex .mord,
+  .katex .mop,
+  .katex .mrel,
+  .katex .mbin,
+  .katex .mpunct {
+    color: hsl(var(--foreground)) !important;
+  }
+}
+
+/* Ultra-schnelle Typewriter-Optimierung */
+.typewriter-text {
+  line-height: 1.6;
+  word-spacing: 0.05em;
+}
+
+.typewriter-container {
+  /* Optimierte Performance für schnelle Rendering */
+  contain: layout style paint;
+  will-change: contents;
+}
+
+/* Processed Math optimiert für schnelle Darstellung */
+.processed-math {
+  /* Optimiert für ultra-schnelle Typewriter-Effekte */
+  display: inline-block;
+  vertical-align: baseline;
+  contain: layout;
+
+  /* KaTeX-spezifische Optimierungen */
+  .katex {
+    font-size: inherit;
+    line-height: inherit;
+  }
+}
+
+/* Proxima Vara Font Stack */
+.font-proxima {
+  font-family: "Proxima Vara", "Proxima Nova", "ProximaSoft", sans-serif;
+}
+
+/* Custom text selection color (matches user prompt bubble) */
+::selection {
+  background: rgba(124, 58, 237, 0.2); /* same as bg-primary/20 */
+  color: inherit;
+}
+
+::-moz-selection {
+  background: rgba(124, 58, 237, 0.2);
+  color: inherit;
 }
