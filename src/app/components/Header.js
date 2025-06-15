@@ -10,11 +10,11 @@ export default function Header({ onClearChat, hasMessages, onPromptSelect }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [savedPrompts, setSavedPrompts] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [promptDialog, setPromptDialog] = useState({ isOpen: false, prompt: null, title: 'Prompt hinzufügen' });
+  const [promptDialog, setPromptDialog] = useState({ isOpen: false, prompt: null, title: 'Add prompt' });
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, promptId: null, promptTitle: '' });
   const [user, setUser] = useState(null);
 
-  // Prompts laden
+  // Load prompts from Supabase
   const loadPrompts = async () => {
     try {
       setLoading(true);
@@ -28,7 +28,7 @@ export default function Header({ onClearChat, hasMessages, onPromptSelect }) {
     }
   };
 
-  // Beim Start Prompts laden
+  // Initial load on component mount
   useEffect(() => {
     loadPrompts();
   }, []);
@@ -64,7 +64,7 @@ export default function Header({ onClearChat, hasMessages, onPromptSelect }) {
 
   const handleEditPrompt = (prompt) => {
     if (!user) {
-      alert('Bitte einloggen, um Prompts zu bearbeiten.');
+      alert('Please log in to edit prompts.');
       return;
     }
     setPromptDialog({
@@ -76,7 +76,7 @@ export default function Header({ onClearChat, hasMessages, onPromptSelect }) {
 
   const handleDeletePrompt = (promptId, promptTitle) => {
     if (!user) {
-      alert('Bitte einloggen, um Prompts zu löschen.');
+      alert('Please log in to delete prompts.');
       return;
     }
     setDeleteConfirm({
@@ -88,7 +88,7 @@ export default function Header({ onClearChat, hasMessages, onPromptSelect }) {
 
   const handleAddNewPrompt = () => {
     if (!user) {
-      alert('Bitte einloggen, um eigene Prompts zu speichern.');
+      alert('Please log in to save custom prompts.');
       return;
     }
     setPromptDialog({
@@ -101,13 +101,13 @@ export default function Header({ onClearChat, hasMessages, onPromptSelect }) {
   const handleSavePrompt = async (title, text) => {
     try {
       if (promptDialog.prompt) {
-        // Prompt bearbeiten
+        // Update existing prompt
         await promptService.updatePrompt(promptDialog.prompt.id, title, text);
       } else {
-        // Neuen Prompt erstellen
+        // Create new prompt entry
         await promptService.createPrompt(title, text);
       }
-      await loadPrompts(); // Prompts neu laden
+      await loadPrompts(); // Refresh prompt list
     } catch (error) {
       console.error('Error saving prompt:', error);
       throw error;
@@ -117,7 +117,7 @@ export default function Header({ onClearChat, hasMessages, onPromptSelect }) {
   const confirmDeletePrompt = async () => {
     try {
       await promptService.deletePrompt(deleteConfirm.promptId);
-      await loadPrompts(); // Prompts neu laden
+      await loadPrompts(); // Refresh prompt list
       setDeleteConfirm({ isOpen: false, promptId: null, promptTitle: '' });
     } catch (error) {
       console.error('Error deleting prompt:', error);
@@ -141,7 +141,7 @@ export default function Header({ onClearChat, hasMessages, onPromptSelect }) {
       <div className="max-w-6xl mx-auto">
         {/* Navigation Area */}
         <div className="flex justify-center items-center gap-4">
-          {/* Neuer Chat Button - nur anzeigen wenn Messages vorhanden */}
+          {/* New chat button – rendered only when messages exist */}
           {hasMessages && (
             <button
               onClick={handleNewChat}

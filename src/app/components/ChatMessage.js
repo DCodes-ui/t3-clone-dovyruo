@@ -366,27 +366,21 @@ function ChatMessage({ message, isUser = false, model, priority, isStreaming = f
       { regex: /\$([^$\n\r]+?)\$/g, isDisplay: false },      
       { regex: /\\\(([^\\]*?)\\\)/g, isDisplay: false },      
       
-      // Code-Block-ähnliche Math (```...```)
-      { regex: /```\s*([\s\S]*?)\s*```/g, isDisplay: true, codeBlockMath: true },   // ```...```
+      { regex: /```\s*([\s\S]*?)\s*```/g, isDisplay: true, codeBlockMath: true },   
       
-      // Einzelne griechische Buchstaben und Symbole erkennen
-      { regex: /\b([A-Z]_?[a-z]*)\s*=\s*([^,\n\r]+)/g, isDisplay: false, variable: true }, // Variablendefinitionen
+      { regex: /\b([A-Z]_?[a-z]*)\s*=\s*([^,\n\r]+)/g, isDisplay: false, variable: true }, 
     ];
     
     const allMatches = [];
     
-    // Alle Pattern durchsuchen
     mathPatterns.forEach(pattern => {
       let match;
       while ((match = pattern.regex.exec(text)) !== null) {
         let content = (match[1] || '').trim();
         
-        // Spezielle Behandlung für Code-Block-Math
         if (pattern.codeBlockMath && content) {
-          // Prüfen ob es mathematische Symbole enthält
           const hasMathSymbols = /[αβγδεζηθικλμνξοπρστυφχψωΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ=+\-*\/\^_{}\(\)\\]/.test(content);
           if (hasMathSymbols) {
-            // Als Display-Math behandeln
             allMatches.push({
               start: match.index,
               end: match.index + match[0].length,
@@ -397,17 +391,15 @@ function ChatMessage({ message, isUser = false, model, priority, isStreaming = f
             });
           }
         } else if (pattern.variable && content) {
-          // Variablendefinitionen als Inline-Math
           allMatches.push({
             start: match.index,
             end: match.index + match[0].length,
-            content: match[0], // Ganze Zeile als Math
+            content: match[0], 
             isDisplay: false,
             fullMatch: match[0],
             isVariable: true
           });
         } else if (content) {
-          // Standard Math-Pattern
           allMatches.push({
             start: match.index,
             end: match.index + match[0].length,
@@ -420,7 +412,6 @@ function ChatMessage({ message, isUser = false, model, priority, isStreaming = f
       pattern.regex.lastIndex = 0;
     });
     
-    // Nach Position sortieren und Überlappungen entfernen
     allMatches.sort((a, b) => a.start - b.start);
     const filteredMatches = [];
     allMatches.forEach(match => {
@@ -433,9 +424,7 @@ function ChatMessage({ message, isUser = false, model, priority, isStreaming = f
       }
     });
     
-    // Text mit Mathematik verarbeiten
     filteredMatches.forEach((mathMatch) => {
-      // Text vor der Formel
       if (mathMatch.start > currentIndex) {
         const beforeText = text.slice(currentIndex, mathMatch.start);
         if (beforeText.trim()) {
@@ -454,7 +443,6 @@ function ChatMessage({ message, isUser = false, model, priority, isStreaming = f
         }
       }
       
-      // Mathematische Formel rendern
       parts.push(
         <MathRenderer 
           key={partKey++}
@@ -467,7 +455,6 @@ function ChatMessage({ message, isUser = false, model, priority, isStreaming = f
       currentIndex = mathMatch.end;
     });
     
-    // Restlichen Text hinzufügen
     if (currentIndex < text.length) {
       const remainingText = text.slice(currentIndex);
       if (remainingText.trim()) {
@@ -486,7 +473,6 @@ function ChatMessage({ message, isUser = false, model, priority, isStreaming = f
       }
     }
     
-    // Fallback: Einfache Formatierung wenn keine Math-Formeln gefunden
     if (parts.length === 0) {
       const formattedText = text
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -504,7 +490,6 @@ function ChatMessage({ message, isUser = false, model, priority, isStreaming = f
     return parts;
   };
 
-  // Für User-Nachrichten: normale Chat-Blase mit Hover-Actions
   if (isUser) {
     return (
       <motion.div
@@ -522,7 +507,6 @@ function ChatMessage({ message, isUser = false, model, priority, isStreaming = f
             </div>
           </div>
           
-          {/* Hover Actions - unter der Nachricht horizontal */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: isHovered ? 1 : 0, y: isHovered ? 0 : -10 }}
@@ -596,7 +580,6 @@ function ChatMessage({ message, isUser = false, model, priority, isStreaming = f
     );
   }
 
-  // Für AI-Antworten: direkt auf der Seite ohne Blase
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -604,7 +587,6 @@ function ChatMessage({ message, isUser = false, model, priority, isStreaming = f
       transition={{ duration: 0.3 }}
       className="w-full max-w-4xl mx-auto px-6 py-8"
     >
-      {/* Modell-Info oben */}
       {(model || priority) && (
         <div className="flex items-center gap-2 mb-6 text-sm text-muted-foreground">
           {model && (
@@ -627,11 +609,9 @@ function ChatMessage({ message, isUser = false, model, priority, isStreaming = f
         </div>
       )}
       
-      {/* Text-Inhalt mit Markdown und LaTeX-Formeln */}
       <div className="prose prose-lg max-w-none text-foreground font-proxima">
         <div className="math-content space-y-4 leading-relaxed text-lg">
           {isStreaming && !streamingComplete ? (
-            // Während Streaming: Zeige ultra-schnellen typewriter-Effekt mit Formatierung
             <div className="typewriter-text">
               <FastTypewriterWithMath 
                 text={message} 
@@ -640,7 +620,6 @@ function ChatMessage({ message, isUser = false, model, priority, isStreaming = f
               <span className="typewriter-cursor ml-1">|</span>
             </div>
           ) : (
-            // Nach Streaming: Zeige vollständig formatierte Nachricht
             processTextWithMarkdownAndMath(message)
           )}
         </div>

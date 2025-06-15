@@ -7,14 +7,14 @@ export default function PromptDialog({
   isOpen, 
   onClose, 
   onSave, 
-  prompt = null, // null für neuen Prompt, Objekt für Bearbeitung
+  prompt = null, // null for new prompt, object for editing
   title = 'Add Prompt'
 }) {
   const [promptTitle, setPromptTitle] = useState('');
   const [promptText, setPromptText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Form mit vorhandenen Daten füllen beim Bearbeiten
+  // Pre-fill form with existing data when editing
   useEffect(() => {
     if (prompt) {
       setPromptTitle(prompt.title || '');
@@ -74,7 +74,7 @@ export default function PromptDialog({
           </div>
 
           <div className="space-y-4">
-            {/* Titel Input */}
+            {/* Title input */}
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">
                 Title

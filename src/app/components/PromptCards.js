@@ -6,19 +6,19 @@ export default function PromptCards({ onPromptClick }) {
       id: 1,
       title: "Write a to-do list for a personal project or task",
       icon: "📝",
-      category: "Produktivität"
+      category: "Productivity"
     },
     {
       id: 2,
       title: "Generate an email to reply to a job offer",
       icon: "📧",
-      category: "Beruf"
+      category: "Work"
     },
     {
       id: 3,
       title: "Summarize this article or text for me in one paragraph",
       icon: "📄",
-      category: "Zusammenfassung"
+      category: "Summary"
     }
   ];
 

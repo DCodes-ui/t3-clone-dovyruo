@@ -40,7 +40,7 @@ export default function SearchInput({ value, onChange, onSubmit, onStop, isLoadi
       id: 'gemini-2.5-pro', 
       name: 'Gemini 2.5 Pro', 
       provider: 'Google',
-      isThinking: false,
+      isThinking: true,
       iconPath: '/gemini_icon.png'
     },
     { 
@@ -123,7 +123,7 @@ export default function SearchInput({ value, onChange, onSubmit, onStop, isLoadi
       animate={{ scale: 1, opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
-      {/* Animierter Glowing Border */}
+      {/* Animated glowing border */}
       <motion.div
         className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary via-purple-500 to-pink-500 opacity-75 blur-sm"
         animate={{
@@ -141,13 +141,13 @@ export default function SearchInput({ value, onChange, onSubmit, onStop, isLoadi
         }}
       />
       
-      {/* Hauptcontainer */}
+      {/* Main container */}
       <motion.div
         className="relative bg-input border border-border rounded-2xl shadow-2xl backdrop-blur-sm"
         transition={{ duration: 0.2 }}
       >
         <form onSubmit={handleSubmit} className="relative">
-          {/* Haupteingabebereich */}
+          {/* Main input area */}
           <div className="relative">
             <textarea
               value={value}
@@ -204,9 +204,9 @@ export default function SearchInput({ value, onChange, onSubmit, onStop, isLoadi
             </motion.button>
           </div>
           
-          {/* Untere Toolbar */}
+          {/* Bottom toolbar */}
           <div className="flex items-center justify-between px-4 pb-3 pt-1">
-            {/* Linke Icons */}
+            {/* Left icons */}
             <div className="flex items-center space-x-3">
               <motion.button
                 type="button"
@@ -218,7 +218,7 @@ export default function SearchInput({ value, onChange, onSubmit, onStop, isLoadi
                 <span>Attach</span>
               </motion.button>
               
-              {/* Priority Dropdown - nur bei Thinking Models anzeigen */}
+              {/* Priority dropdown – visible only for thinking models */}
               {isThinkingModel && (
                 <div className="relative">
                   <motion.button
@@ -232,7 +232,7 @@ export default function SearchInput({ value, onChange, onSubmit, onStop, isLoadi
                     <span>{selectedPriority}</span>
                   </motion.button>
 
-                  {/* Priority Dropdown Menu */}
+                  {/* Priority dropdown menu */}
                   {priorityDropdownOpen && (
                     <motion.div
                       className="absolute bottom-full left-0 mb-2 w-32 bg-card border border-border rounded-lg shadow-lg z-20"
@@ -258,7 +258,7 @@ export default function SearchInput({ value, onChange, onSubmit, onStop, isLoadi
                 </div>
               )}
               
-              {/* AI Model Dropdown */}
+              {/* AI model dropdown */}
               <div className="relative">
                 <motion.button
                   type="button"
@@ -285,7 +285,7 @@ export default function SearchInput({ value, onChange, onSubmit, onStop, isLoadi
                   </svg>
                 </motion.button>
 
-                {/* AI Model Dropdown Menu */}
+                {/* AI model dropdown menu */}
                 {modelDropdownOpen && (
                   <motion.div
                     className="absolute bottom-full left-0 mb-2 w-64 bg-card border border-border rounded-lg shadow-lg z-20 max-h-80 overflow-y-auto"

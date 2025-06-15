@@ -21,14 +21,13 @@ export default function ChatInterface() {
   const [stoppedPrompt, setStoppedPrompt] = useState(null);
   const [user, setUser] = useState(null);
 
-  // Auswahl-Toolbar & Notizen
+  // Selection toolbar
   const [selectionInfo, setSelectionInfo] = useState(null);
-  const [notes, setNotes] = useState([]);
   const savedRangeRef = useRef(null);
   const toolbarClickRef = useRef(false);
   const chatAreaRef = useRef(null);
 
-  // Stelle Selektion nach dem Render wieder her, sobald Toolbar erscheint
+  // Restore the text selection once the toolbar appears after render
   useEffect(() => {
     if (selectionInfo && savedRangeRef.current) {
       const sel = window.getSelection();
@@ -39,10 +38,10 @@ export default function ChatInterface() {
     }
   }, [selectionInfo]);
 
-  // Beobachte Textauswahl
+  // Observe text selection changes
   useEffect(() => {
     const handleSelection = () => {
-      // Wenn gerade Toolbar geklickt wurde, ignorieren
+      // Ignore when the toolbar itself was clicked
       if (toolbarClickRef.current) {
         toolbarClickRef.current = false;
         return;
@@ -61,14 +60,15 @@ export default function ChatInterface() {
         }
         const range = sel.getRangeAt(0);
         const rect = range.getBoundingClientRect();
-        const containerRect = chatAreaRef.current?.getBoundingClientRect() || { top: 0, left: 0 };
+        const containerRect = chatAreaRef.current?.getBoundingClientRect() || { top: 0, left: 0, right: 0 };
         const relTop = rect.top - containerRect.top + chatAreaRef.current.scrollTop;
+        const absRight = rect.right + window.scrollX;
         const relLeft = rect.right - containerRect.left + chatAreaRef.current.scrollLeft;
         savedRangeRef.current = range.cloneRange();
         setSelectionInfo({
           text: selectedText,
           top: rect.top + window.scrollY,
-          left: rect.right + window.scrollX,
+          absRight,
           relTop,
           relLeft
         });
@@ -102,22 +102,7 @@ export default function ChatInterface() {
     window.getSelection()?.removeAllRanges();
   };
 
-  const handleNoteSelection = () => {
-    if (!selectionInfo) return;
-    toolbarClickRef.current = true;
-    const newNote = {
-      id: nanoid(),
-      text: selectionInfo.text,
-      top: selectionInfo.top,
-      left: selectionInfo.left + 16,
-      note: ''
-    };
-    setNotes(prev => [...prev, newNote]);
-    setSelectionInfo(null);
-    window.getSelection()?.removeAllRanges();
-  };
-
-  // Check if there are local messages on start
+  // Load any locally stored messages on startup
   useEffect(() => {
     const savedMessages = localStorage.getItem('chatMessages');
     if (savedMessages) {
@@ -125,7 +110,7 @@ export default function ChatInterface() {
         const parsedMessages = JSON.parse(savedMessages);
         if (parsedMessages.length > 0) {
           setMessages(parsedMessages);
-          // Automatically save if local messages are present
+          // Auto-save if we found local messages
           autoSaveChat(parsedMessages);
         }
       } catch (error) {
@@ -134,7 +119,7 @@ export default function ChatInterface() {
     }
   }, []);
 
-  // Auth listener
+  // Supabase auth listener
   useEffect(() => {
     const init = async () => {
       const { data } = await supabase.auth.getUser();
@@ -148,23 +133,23 @@ export default function ChatInterface() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  // Generate chat title from the first message
+  // Utility: generate chat title from the first user message
   const generateChatTitle = (messages) => {
-    if (messages.length === 0) return 'Neuer Chat';
+    if (messages.length === 0) return 'New chat';
     const firstUserMessage = messages.find(msg => msg.role === 'user');
     if (firstUserMessage) {
       return firstUserMessage.content.substring(0, 50) + (firstUserMessage.content.length > 50 ? '...' : '');
     }
-    return 'Neuer Chat';
+    return 'New chat';
   };
 
-  // Automatic saving
+  // Persist chat messages to Supabase (auto-save)
   const autoSaveChat = async (messagesToSave = messages) => {
     if (messagesToSave.length === 0) return null;
 
     const userId = await getCurrentUserId();
     if (!userId) {
-      // User not logged in; keep messages locally only
+      // If the user is not logged in we keep messages only in localStorage
       return null;
     }
 
@@ -172,18 +157,18 @@ export default function ChatInterface() {
       let chatId = currentChatId;
       
       if (!chatId) {
-        // Create new chat
+        // Create a new chat entry in Supabase
         const title = generateChatTitle(messagesToSave);
         const chat = await chatService.createChat(title);
         chatId = chat.id;
         setCurrentChatId(chatId);
       }
 
-      // Save only new messages (those without an id)
+      // Only push messages that are not yet saved (no id)
       for (const message of messagesToSave) {
         if (!message.id) {
           const savedMessage = await chatService.addMessage(chatId, message);
-          // Update message-ID to avoid duplicates
+          // Update the local message with returned id to avoid duplicates
           message.id = savedMessage.id;
         }
       }
@@ -196,10 +181,10 @@ export default function ChatInterface() {
     }
   };
 
-  // Chat laden
+  // Load an existing chat from Supabase
   const loadChat = async (chatId) => {
     try {
-      // Automatically save current chat if not already saved
+      // Auto-save current unsaved chat before switching
       if (messages.length > 0 && !currentChatId) {
         await autoSaveChat();
       }
@@ -214,9 +199,9 @@ export default function ChatInterface() {
     }
   };
 
-  // Neuer Chat
+  // Start a brand-new chat
   const startNewChat = async () => {
-    // Automatically save current chat if not already saved
+    // Auto-save current unsaved chat before resetting
     if (messages.length > 0 && !currentChatId) {
       await autoSaveChat();
     }
@@ -229,15 +214,15 @@ export default function ChatInterface() {
 
   const handleSubmit = async (value, selectedModelParam = 'gemini-2.5-flash', selectedPriority = 'High') => {
     if (!user) {
-      alert('Bitte einloggen, um Prompts zu senden.');
+      alert('Please sign in to send prompts.');
       return;
     }
     if (!value.trim() || isLoading) return;
 
-    // Update selected model state for loading indicator
+    // Store currently selected model – used for loading indicator
     setSelectedModel(selectedModelParam);
 
-    // Add user message to chat
+    // Push user message to state
     const userMessage = {
       role: 'user',
       content: value,
@@ -249,15 +234,15 @@ export default function ChatInterface() {
     setInputValue('');
     setIsLoading(true);
 
-    // Local storage update (as backup)
+    // Backup to localStorage in case of refresh / offline
     localStorage.setItem('chatMessages', JSON.stringify(newMessages));
 
     try {
-      // Create abort controller for stop function
+      // Create abort controller so user can cancel request
       const controller = new AbortController();
       setAbortController(controller);
 
-      // Send request to our API with the complete message history
+      // Call our /api/chat endpoint with full message history
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -266,7 +251,7 @@ export default function ChatInterface() {
         signal: controller.signal,
         body: JSON.stringify({
           message: value,
-          messages: messages, // Send previous messages for context (true)
+          messages: messages, // full context for the model
           model: selectedModelParam,
           priority: selectedPriority
         }),
@@ -278,7 +263,7 @@ export default function ChatInterface() {
         throw new Error(data.error || 'Failed to get response');
       }
 
-      // Add AI response to chat with streaming flag (true)
+      // Append assistant response with streaming flag
       const aiMessage = {
         role: 'assistant',
         content: data.response,
@@ -291,11 +276,11 @@ export default function ChatInterface() {
       const finalMessages = [...newMessages, aiMessage];
       setMessages(finalMessages);
       
-      // Automatically save after each AI response
+      // Auto-save after assistant responded
       await autoSaveChat(finalMessages);
 
     } catch (error) {
-      // Debug logging to understand the problem
+      // Extra logging for easier debugging
       console.log('Error details:', {
         name: error.name,
         message: error.message,
@@ -303,7 +288,7 @@ export default function ChatInterface() {
         constructor: error.constructor.name
       });
       
-      // Comprehensive check for abort errors
+      // Detect different types of abort errors
       const isAbortError = 
         error.name === 'AbortError' || 
         error.message?.includes('abort') || 
@@ -313,7 +298,7 @@ export default function ChatInterface() {
         error.constructor.name === 'AbortError';
       
       if (isAbortError) {
-        // Request was stopped - no error, just normal user action
+        // User intentionally stopped the request – not an error
         console.log('Request stopped by user');
         setStoppedPrompt({
           content: value,
@@ -321,9 +306,9 @@ export default function ChatInterface() {
           priority: selectedPriority
         });
       } else {
-        // Only log real errors
+        // Log genuine errors only (skip aborts)
         console.error('Chat error:', error);
-        // Add error message to chat
+        // Push error message into chat
         const errorMessage = {
           role: 'assistant',
           content: `Sorry, I encountered an error: ${error.message}. Please check your API key and try again.`,
@@ -336,7 +321,7 @@ export default function ChatInterface() {
         const errorMessages = [...newMessages, errorMessage];
         setMessages(errorMessages);
         
-        // Also save error messages automatically
+        // Auto-save including the error entry
         await autoSaveChat(errorMessages);
       }
     } finally {
@@ -350,7 +335,7 @@ export default function ChatInterface() {
       try {
         abortController.abort('User requested to stop the request');
       } catch (error) {
-        // Ignore abort errors - this is expected behavior
+        // Ignore abort exceptions – expected behaviour
         console.log('Request stopped by user');
       }
     }
@@ -385,7 +370,7 @@ export default function ChatInterface() {
     setStoppedPrompt(null);
   };
 
-  // Hover-Actions for all user messages
+  // Hover actions (retry, edit, copy) for every user message
   const handleRetry = async (messageContent) => {
     await handleSubmit(messageContent, selectedModel, selectedPriority);
   };
@@ -433,47 +418,13 @@ export default function ChatInterface() {
         
         {/* Chat Messages - scrollable area with extra padding at bottom */}
         <main className="flex-1 overflow-y-auto relative flex flex-col">
-          {/* Sticky Note Cards */}
-          {notes.map(note => (
-            <div
-              key={note.id}
-              className="fixed w-72 bg-card border border-border rounded-lg shadow-lg p-4 space-y-3"
-              style={{ top: note.top, left: note.left, zIndex: 100 }}
-            >
-              <blockquote className="border-l-2 border-primary pl-2 italic text-sm text-foreground/80 whitespace-pre-wrap">
-                {note.text}
-              </blockquote>
-              <textarea
-                placeholder="Your notes..."
-                className="w-full bg-background border border-border rounded p-2 text-sm resize-none"
-                rows={4}
-                defaultValue={note.note}
-                onChange={(e)=>setNotes(prev=>prev.map(n=>n.id===note.id?{...n,note:e.target.value}:n))}
-              />
-              <button
-                onClick={() => setNotes(prev => prev.filter(n => n.id !== note.id))}
-                className="absolute top-2 right-2 text-muted-foreground hover:text-red-500"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          ))}
           {!user && (
             <div className="flex-1 flex items-center justify-center">
               <button
                 onClick={handleSignIn}
-                className="flex items-center gap-3 px-6 py-3 bg-white dark:bg-card hover:bg-gray-100 dark:hover:bg-accent border border-border rounded-lg shadow transition-colors text-base font-medium"
+                className="px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg shadow-lg transition-colors text-lg"
               >
-                {/* Google G Logo */}
-                <svg className="w-5 h-5" viewBox="0 0 48 48">
-                  <path fill="#EA4335" d="M24 9.5c3.9 0 7.4 1.5 10 4.1l7.5-7.5C36.3 2 30.6 0 24 0 14.6 0 6.6 5.3 2.4 13.1l8.6 6.9C13 14 18.2 9.5 24 9.5z"/>
-                  <path fill="#4285F4" d="M46.9 24.6c0-1.6-.1-3.1-.4-4.6H24v9.1h12.9c-.6 3.1-2.5 5.8-5.3 7.6l8.4 6.5c4.9-4.5 7.9-11.1 7.9-18.6z"/>
-                  <path fill="#FBBC05" d="M10.9 28.5c-1-2.9-1-6 0-8.9L2.4 13.1c-3.3 6.6-3.3 14.4 0 21l8.5-6.9z"/>
-                  <path fill="#34A853" d="M24 48c6.6 0 12.3-2.2 16.4-6l-8.4-6.5c-2.3 1.5-5.2 2.4-8 2.4-5.8 0-10.9-4-12.7-9.4L2.4 34.1C6.6 42 14.6 48 24 48z"/>
-                </svg>
-                <span className="text-foreground dark:text-foreground">Continue with Google</span>
+                Sign in with Google
               </button>
             </div>
           )}
@@ -555,12 +506,12 @@ export default function ChatInterface() {
         </div>
         )}
 
-        {/* Auswahl-Toolbar */}
+        {/* Selection toolbar */}
         {selectionInfo && (
           <div
             id="selection-toolbar"
             className="fixed z-50 flex gap-2"
-            style={{ top: selectionInfo.top - 40, left: selectionInfo.left }}
+            style={{ top: selectionInfo.top - 40, left: selectionInfo.absRight + 8 }}
           >
             <button
               onMouseDown={(e) => {
@@ -573,19 +524,6 @@ export default function ChatInterface() {
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M7.17 6A4 4 0 003 10v4a3 3 0 003 3h2a3 3 0 003-3v-4a4 4 0 00-3.83-4zM6 10a2 2 0 012-2h.17A2 2 0 0110 10v4a1 1 0 01-1 1H7a1 1 0 01-1-1zM17.17 6A4 4 0 0013 10v4a3 3 0 003 3h2a3 3 0 003-3v-4a4 4 0 00-3.83-4zM16 10a2 2 0 012-2h.17A2 2 0 0120 10v4a1 1 0 01-1 1h-2a1 1 0 01-1-1z" />
-              </svg>
-            </button>
-            <button
-              onMouseDown={(e) => {
-                e.preventDefault();
-                toolbarClickRef.current = true;
-              }}
-              onClick={handleNoteSelection}
-              className="p-2 bg-card border border-border rounded-full shadow hover:bg-accent"
-              title="Add note"
-            >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M5 3a2 2 0 00-2 2v14l4-4h10a2 2 0 002-2V5a2 2 0 00-2-2H5z" />
               </svg>
             </button>
           </div>

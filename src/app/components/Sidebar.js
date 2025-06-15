@@ -11,7 +11,7 @@ export default function Sidebar({ isOpen, onToggle, currentChatId, onChatSelect,
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, chatId: null, chatTitle: '' });
   const [user, setUser] = useState(null);
 
-  // Chats laden
+  // Load chats from Supabase
   const loadChats = async () => {
     try {
       setLoading(true);
@@ -29,7 +29,7 @@ export default function Sidebar({ isOpen, onToggle, currentChatId, onChatSelect,
     loadChats();
   }, [user]);
 
-  // Auth state listener
+  // Supabase auth state listener
   useEffect(() => {
     const init = async () => {
       const { data } = await supabase.auth.getUser();
@@ -49,7 +49,7 @@ export default function Sidebar({ isOpen, onToggle, currentChatId, onChatSelect,
     await supabase.auth.signOut();
   };
 
-  // Chat löschen
+  // Delete chat
   const handleDeleteChat = (chatId, chatTitle, e) => {
     e.stopPropagation();
     setDeleteConfirm({ 
@@ -62,9 +62,9 @@ export default function Sidebar({ isOpen, onToggle, currentChatId, onChatSelect,
   const confirmDeleteChat = async () => {
     try {
       await chatService.deleteChat(deleteConfirm.chatId);
-      await loadChats(); // Chats neu laden
+      await loadChats(); // Refresh chat list
       
-      // Wenn der aktuell geöffnete Chat gelöscht wurde, neuen Chat starten
+      // If the currently open chat was deleted, start a new chat
       if (currentChatId === deleteConfirm.chatId) {
         onNewChat();
       }
@@ -80,7 +80,7 @@ export default function Sidebar({ isOpen, onToggle, currentChatId, onChatSelect,
     setDeleteConfirm({ isOpen: false, chatId: null, chatTitle: '' });
   };
 
-  // Chat-Titel kürzen
+  // Shorten chat title
   const truncateTitle = (title, maxLength = 25) => {
     if (title.length <= maxLength) return title;
     return title.substring(0, maxLength) + '...';
@@ -88,7 +88,7 @@ export default function Sidebar({ isOpen, onToggle, currentChatId, onChatSelect,
 
   return (
     <>
-      {/* Overlay für Mobile */}
+      {/* Mobile overlay */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -127,7 +127,7 @@ export default function Sidebar({ isOpen, onToggle, currentChatId, onChatSelect,
             <button
               onClick={onToggle}
               className="p-2 hover:bg-accent rounded-lg transition-colors"
-              title={isOpen ? "Sidebar schließen" : "Sidebar öffnen"}
+              title={isOpen ? "Close sidebar" : "Open sidebar"}
             >
               {isOpen ? (
                 <svg 
@@ -152,7 +152,7 @@ export default function Sidebar({ isOpen, onToggle, currentChatId, onChatSelect,
           </div>
         </div>
 
-        {/* Neuer Chat Button */}
+        {/* New chat button */}
         <div className="p-4">
           <button
             onClick={onNewChat}
@@ -265,7 +265,7 @@ export default function Sidebar({ isOpen, onToggle, currentChatId, onChatSelect,
           )}
 
           <button
-            onClick={() => console.log('Settings clicked')} // Später: Settings-Modal öffnen
+            onClick={() => console.log('Settings clicked')} // TODO: open settings modal
             className={`flex items-center gap-3 w-full p-3 hover:bg-accent rounded-lg transition-colors text-muted-foreground hover:text-foreground ${
               !isOpen ? 'justify-center' : ''
             }`}
@@ -289,7 +289,7 @@ export default function Sidebar({ isOpen, onToggle, currentChatId, onChatSelect,
         </div>
       </motion.div>
 
-      {/* Bestätigungsdialog für Chat-Löschung */}
+      {/* Confirmation dialog for chat deletion */}
       <ConfirmDialog
         isOpen={deleteConfirm.isOpen}
         onConfirm={confirmDeleteChat}
