@@ -422,8 +422,34 @@ export default function ChatInterface() {
             <div className="flex-1 flex items-center justify-center">
               <button
                 onClick={handleSignIn}
-                className="px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg shadow-lg transition-colors text-lg"
+                className="px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg shadow-lg transition-colors text-lg flex items-center gap-2"
               >
+                {/* Google "G" Logo */}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 18 18"
+                  className="w-6 h-6"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <path
+                    fill="#EA4335"
+                    d="M9 3.48c1.69 0 2.84.73 3.49 1.35l2.57-2.49C13.41.89 11.43 0 9 0 5.48 0 2.4 2.24.96 5.5l2.98 2.32C4.89 5.27 6.78 3.48 9 3.48Z"
+                  />
+                  <path
+                    fill="#4285F4"
+                    d="M17.64 9.2c0-.63-.06-1.24-.17-1.82H9v3.44h4.84c-.21 1.12-.84 2.07-1.8 2.71v2.25h2.9c1.69-1.56 2.7-3.86 2.7-6.58Z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M3.78 10.26a5.38 5.38 0 0 1 0-3.51V4.5H.82a8.51 8.51 0 0 0 0 7.51l2.96-2.32Z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M9 18c2.43 0 4.47-.8 5.96-2.17l-2.9-2.25c-.8.54-1.83.86-3.06.86-2.21 0-4.1-1.52-4.77-3.57L1.16 12.5C2.4 15.76 5.48 18 9 18Z"
+                  />
+                  <path fill="none" d="M0 0h18v18H0Z" />
+                </svg>
                 Sign in with Google
               </button>
             </div>
