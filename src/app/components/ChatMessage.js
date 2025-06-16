@@ -73,57 +73,71 @@ const FastTypewriterWithMath = ({ text, onComplete }) => {
   const CHUNK_SIZE = 12;      
   const FRAME_SPEED = 5;     
 
-
+  // Ursprüngliche Hilfsfunktion zur Erkennung von mathematischen Bereichen
   const preprocessMath = (fullText) => {
-    const elements = [];
-    let lastIndex = 0;
-    
-
     const patterns = [
-      { regex: /\$\$([\s\S]*?)\$\$/g, isDisplay: true },      
-      { regex: /\\\[([\s\S]*?)\\\]/g, isDisplay: true },      
-      { regex: /\$([^$\n\r]+?)\$/g, isDisplay: false },      
-      { regex: /\\\(([^\\]*?)\\\)/g, isDisplay: false },      
-      { regex: /```\s*([\s\S]*?)\s*```/g, isDisplay: true, codeBlock: true },
+      { regex: /\$\$([\s\S]*?)\$\$/g, isDisplay: true },       // $$ ... $$
+      { regex: /\\\[([\s\S]*?)\\\]/g, isDisplay: true },       // \[ ... \]
+      { regex: /\$([^$\n\r]+?)\$/g, isDisplay: false },          // $ ... $
+      { regex: /\\\(([^\\]*?)\\\)/g, isDisplay: false },      // \( ... \)
+      // Code-Blöcke (``` ... ```), werden nur berücksichtigt, wenn sie typische Math-Symbole enthalten
+      { regex: /```\s*([\s\S]*?)\s*```/g, isDisplay: true, codeBlockMath: true },
+      // Einfache Variablenzuweisung (A = B)
+      { regex: /\b([A-Z]_?[a-z]*)\s*=\s*([^,\n\r]+)/g, isDisplay: false, variable: true },
     ];
-    
+
     const allMatches = [];
-    
     patterns.forEach(pattern => {
       let match;
       while ((match = pattern.regex.exec(fullText)) !== null) {
-        const content = match[1]?.trim() || '';
-        if (content) {
+        let content = (match[1] || '').trim();
+
+        // Behandlung für Code-Blocks: nur aufnehmen, wenn Formelzeichen enthalten sind
+        if (pattern.codeBlockMath) {
+          if (!content) continue;
+          const hasMathSymbols = /[αβγδεζηθικλμνξοπρστυφχψωΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ=+\-*\/\^_{}\\()]/.test(content);
+          if (!hasMathSymbols) continue;
           allMatches.push({
             start: match.index,
             end: match.index + match[0].length,
-            content: content,
+            content,
+            isDisplay: true,
+            fullMatch: match[0],
+            isCodeBlockMath: true
+          });
+        } else if (pattern.variable && content) {
+          allMatches.push({
+            start: match.index,
+            end: match.index + match[0].length,
+            content: match[0],
+            isDisplay: false,
+            fullMatch: match[0],
+            isVariable: true
+          });
+        } else if (content) {
+          allMatches.push({
+            start: match.index,
+            end: match.index + match[0].length,
+            content,
             isDisplay: pattern.isDisplay,
             fullMatch: match[0]
           });
         }
       }
-      pattern.regex.lastIndex = 0; 
+      pattern.regex.lastIndex = 0;
     });
-    
-    
+
+    // Sortieren & Überlappungen entfernen
     allMatches.sort((a, b) => a.start - b.start);
-    
-    
-    const filteredMatches = [];
+    const filtered = [];
     allMatches.forEach(match => {
-      const hasOverlap = filteredMatches.some(existing => 
-        (match.start >= existing.start && match.start < existing.end) ||
-        (match.end > existing.start && match.end <= existing.end)
-      );
-      if (!hasOverlap) {
-        filteredMatches.push(match);
-      }
+      const overlap = filtered.some(m => (match.start < m.end && match.end > m.start));
+      if (!overlap) filtered.push(match);
     });
-    
-    return filteredMatches;
+    return filtered;
   };
 
+  // Wieder ursprüngliche Nutzung
   const mathMatches = preprocessMath(text);
 
   useEffect(() => {
@@ -322,6 +336,33 @@ const TypingIndicator = ({ model }) => {
   );
 }
 
+// CodeBlock-Komponente mit Copy-Button
+const CodeBlock = ({ code, language }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(code.trim());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch (err) {
+      console.error('Copy failed', err);
+    }
+  };
+
+  return (
+    <div className="relative my-4 text-sm border rounded-lg bg-muted/10 overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-1 bg-muted/20 border-b text-xs font-mono select-none">
+        <span className="uppercase tracking-wider text-muted-foreground">{language || 'code'}</span>
+        <button onClick={handleCopy} className="hover:text-primary transition-colors">
+          {copied ? '✓' : 'Copy'}
+        </button>
+      </div>
+      <pre className="overflow-auto p-3 whitespace-pre-wrap leading-relaxed"><code>{code}</code></pre>
+    </div>
+  );
+};
+
 export default ChatMessage;
 export { TypingIndicator };
 
@@ -353,140 +394,85 @@ function ChatMessage({ message, isUser = false, model, priority, isStreaming = f
     }
   };
 
-  const processTextWithMarkdownAndMath = (text) => {
-    if (!text || typeof text !== 'string') return text;
-    
+  const processTextWithMarkdownAndMath = (input) => {
+    if (!input || typeof input !== 'string') return input;
+
+    /* -----------------------------------------------------
+       1) Text in Blöcke zerlegen (Math, Code, Plain)
+    ----------------------------------------------------- */
+    const regex = /```[\s\S]*?```|\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]|\\\([^]*?\\\)|\$[^$\n\r]+?\$/g;
+    let cursor = 0;
+    const blocks = [];
+
+    const pushPlain = (txt) => {
+      if (!txt) return;
+      blocks.push({ type: 'text', content: txt });
+    };
+
+    let match;
+    while ((match = regex.exec(input)) !== null) {
+      const start = match.index;
+      const end = regex.lastIndex;
+      pushPlain(input.slice(cursor, start));
+
+      const token = match[0];
+      if (token.startsWith('```')) {
+        // Sprache extrahieren
+        const langMatch = token.match(/^```(\w+)?/);
+        const lang = langMatch && langMatch[1] ? langMatch[1] : '';
+        const code = token.replace(/^```\w*\s*|\s*```$/g, '');
+        blocks.push({ type: 'code', content: code, lang });
+      } else if (token.startsWith('$$') || token.startsWith('\\[')) {
+        const latex = token.replace(/^\$\$|^\\\[|\$\$$|\\\]$/g, '');
+        blocks.push({ type: 'math', content: latex, display: true });
+      } else if (token.startsWith('\\(') || token.startsWith('$')) {
+        const cleaned = token.replace(/^\\\(|^\$|\\\)$|\$$/g, '');
+        blocks.push({ type: 'math', content: cleaned, display: false });
+      }
+      cursor = end;
+    }
+    pushPlain(input.slice(cursor));
+
+    /* -----------------------------------------------------
+       2) Jeden Block getrennt behandeln
+    ----------------------------------------------------- */
     const parts = [];
-    let currentIndex = 0;
-    let partKey = 0;
-    
-    const mathPatterns = [
-      { regex: /\$\$([\s\S]*?)\$\$/g, isDisplay: true },      
-      { regex: /\\\[([\s\S]*?)\\\]/g, isDisplay: true },      
-      { regex: /\$([^$\n\r]+?)\$/g, isDisplay: false },      
-      { regex: /\\\(([^\\]*?)\\\)/g, isDisplay: false },      
-      
-      { regex: /```\s*([\s\S]*?)\s*```/g, isDisplay: true, codeBlockMath: true },   
-      
-      { regex: /\b([A-Z]_?[a-z]*)\s*=\s*([^,\n\r]+)/g, isDisplay: false, variable: true }, 
-    ];
-    
-    const allMatches = [];
-    
-    mathPatterns.forEach(pattern => {
-      let match;
-      while ((match = pattern.regex.exec(text)) !== null) {
-        let content = (match[1] || '').trim();
-        
-        if (pattern.codeBlockMath && content) {
-          const hasMathSymbols = /[αβγδεζηθικλμνξοπρστυφχψωΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ=+\-*\/\^_{}\(\)\\]/.test(content);
-          if (hasMathSymbols) {
-            allMatches.push({
-              start: match.index,
-              end: match.index + match[0].length,
-              content: content,
-              isDisplay: true,
-              fullMatch: match[0],
-              isCodeBlockMath: true
-            });
-          }
-        } else if (pattern.variable && content) {
-          allMatches.push({
-            start: match.index,
-            end: match.index + match[0].length,
-            content: match[0], 
-            isDisplay: false,
-            fullMatch: match[0],
-            isVariable: true
-          });
-        } else if (content) {
-          allMatches.push({
-            start: match.index,
-            end: match.index + match[0].length,
-            content: content,
-            isDisplay: pattern.isDisplay,
-            fullMatch: match[0]
-          });
-        }
-      }
-      pattern.regex.lastIndex = 0;
-    });
-    
-    allMatches.sort((a, b) => a.start - b.start);
-    const filteredMatches = [];
-    allMatches.forEach(match => {
-      const hasOverlap = filteredMatches.some(existing => 
-        (match.start >= existing.start && match.start < existing.end) ||
-        (match.end > existing.start && match.end <= existing.end)
-      );
-      if (!hasOverlap) {
-        filteredMatches.push(match);
-      }
-    });
-    
-    filteredMatches.forEach((mathMatch) => {
-      if (mathMatch.start > currentIndex) {
-        const beforeText = text.slice(currentIndex, mathMatch.start);
-        if (beforeText.trim()) {
-          const formattedText = beforeText
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\*([^*]+?)\*/g, '<em>$1</em>')
-            .replace(/(^|\n)\s*\*\s+/g, '$1&#8226; ')
-            .replace(/\n/g, '<br />');
+    let key = 0;
+
+    const formatPlain = (txt) => {
+      return txt
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // bold
+        .replace(/\*([^*]+?)\*/g, '<em>$1</em>')           // italic
+        .replace(/(^|\n)[ \t]*\*[ \t]+/g, '$1&#8226; ')   // bullets
+        .replace(/\n/g, '<br />');
+    };
+
+    blocks.forEach((b) => {
+      if (b.type === 'text') {
+        const html = formatPlain(b.content);
+        if (html)
           parts.push(
-            <span 
-              key={partKey++} 
+            <span
+              key={key++}
               className="whitespace-pre-wrap"
-              dangerouslySetInnerHTML={{ __html: formattedText }}
+              dangerouslySetInnerHTML={{ __html: html }}
             />
           );
-        }
-      }
-      
-      parts.push(
-        <MathRenderer 
-          key={partKey++}
-          content={mathMatch.content}
-          isDisplay={mathMatch.isDisplay}
-          className="processed-math"
-        />
-      );
-      
-      currentIndex = mathMatch.end;
-    });
-    
-    if (currentIndex < text.length) {
-      const remainingText = text.slice(currentIndex);
-      if (remainingText.trim()) {
-        const formattedText = remainingText
-          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-          .replace(/\*([^*]+?)\*/g, '<em>$1</em>')
-          .replace(/(^|\n)\s*\*\s+/g, '$1&#8226; ')
-          .replace(/\n/g, '<br />');
+      } else if (b.type === 'code') {
         parts.push(
-          <span 
-            key={partKey++} 
-            className="whitespace-pre-wrap"
-            dangerouslySetInnerHTML={{ __html: formattedText }}
+          <CodeBlock key={key++} code={b.content} language={b.lang} />
+        );
+      } else if (b.type === 'math') {
+        parts.push(
+          <MathRenderer
+            key={key++}
+            content={b.content}
+            isDisplay={b.display}
           />
         );
       }
-    }
-    
-    if (parts.length === 0) {
-      const formattedText = text
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*([^*]+?)\*/g, '<em>$1</em>')
-        .replace(/(^|\n)\s*\*\s+/g, '$1&#8226; ')
-        .replace(/\n/g, '<br />');
-      return (
-        <span 
-          className="whitespace-pre-wrap"
-          dangerouslySetInnerHTML={{ __html: formattedText }}
-        />
-      );
-    }
-    
+    });
+
     return parts;
   };
 

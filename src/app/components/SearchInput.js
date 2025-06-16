@@ -125,7 +125,7 @@ export default function SearchInput({ value, onChange, onSubmit, onStop, isLoadi
     >
       {/* Animated glowing border */}
       <motion.div
-        className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary via-purple-500 to-pink-500 opacity-75 blur-sm"
+        className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-r from-primary via-purple-500 to-pink-500 opacity-75 blur-sm z-0"
         animate={{
           backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
         }}
@@ -157,7 +157,7 @@ export default function SearchInput({ value, onChange, onSubmit, onStop, isLoadi
               onBlur={() => setIsFocused(false)}
               placeholder="Type your message here..."
               className="w-full min-h-[80px] max-h-[300px] px-4 py-4 pr-14 bg-transparent border-none text-foreground placeholder-muted-foreground focus:outline-none resize-none text-base leading-relaxed"
-              disabled={actualLoading}
+              readOnly={actualLoading}
               rows={2}
             />
             
@@ -166,7 +166,7 @@ export default function SearchInput({ value, onChange, onSubmit, onStop, isLoadi
               type={actualLoading ? "button" : "submit"}
               onClick={actualLoading ? handleStop : undefined}
               disabled={!actualLoading && !value.trim()}
-              className={`absolute top-3 right-3 p-2 rounded-lg transition-colors ${
+              className={`absolute z-10 top-3 right-3 p-2 rounded-lg transition-colors ${
                 actualLoading 
                   ? 'bg-red-500 hover:bg-red-600 text-white' 
                   : 'bg-primary hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed'
